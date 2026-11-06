@@ -86,55 +86,65 @@ export class MotionController{constructor(e={}){this.onSwing=typeof e.onSwing=="
     this._buildEasyControlsUI();
   }
   _buildEasyControlsUI(){
-    if(typeof document==="undefined"||document.getElementById("easy-controls-root"))return;
-    const css=document.createElement("style");
-    css.textContent=`
-#easy-hint{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:12;padding:4px 12px;border-radius:999px;background:rgba(10,14,20,.72);color:#fff;font:700 11.5px/1.2 system-ui,sans-serif;pointer-events:none;white-space:nowrap;max-width:96vw;overflow:hidden;text-overflow:ellipsis;transition:opacity .6s}
-#easy-hint b{color:#ffea28}
-#easy-controls-root{position:fixed;inset:0;z-index:40;pointer-events:none;display:none}
-#easy-controls-root.on{display:block}
-#easy-joy{position:absolute;left:22px;bottom:26px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.5);pointer-events:auto;touch-action:none}
-#easy-joy-knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid #fff}
-#easy-pad{position:absolute;right:16px;bottom:22px;display:grid;grid-template-columns:repeat(2,64px);gap:10px;pointer-events:auto;touch-action:none}
-#easy-pad button{height:58px;border-radius:16px;border:2px solid #fff;background:rgba(20,110,200,.78);color:#fff;font:900 14px system-ui,sans-serif;touch-action:manipulation}
-#easy-pad button.main{grid-column:1/3;height:70px;background:rgba(60,170,40,.88);font-size:18px}
-#easy-pad button:active{transform:scale(.94);filter:brightness(1.25)}`;
-    document.head.appendChild(css);
-    const hint=document.createElement("div");
-    hint.id="easy-hint";
-    hint.innerHTML="<b>WASD/←↑↓→</b> chạy + ngắm • <b>Space/Click</b> đánh thông minh • <b>J</b> cắt • <b>L</b> đập • <b>U</b> dink • <b>I</b> lob";
-    document.body.appendChild(hint);
+    if(typeof document==="undefined"||document.getElementById("easy-hint")||document.getElementById("easy-controls-root"))return;
     const coarse=(window.matchMedia&&window.matchMedia("(pointer: coarse)").matches)||("ontouchstart" in window);
-    if(!coarse)return;
-    hint.style.display="none";
-    const root=document.createElement("div");root.id="easy-controls-root";root.className="on";
-    root.innerHTML=`<div id="easy-joy" class="hud-interactive"><div id="easy-joy-knob"></div></div>
+    if(!coarse){
+      const css=document.createElement("style");
+      css.textContent=`#easy-hint{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:12;padding:4px 12px;border-radius:999px;background:rgba(10,14,20,.72);color:#fff;font:700 11.5px/1.2 system-ui,sans-serif;pointer-events:none;white-space:nowrap;max-width:96vw;overflow:hidden;text-overflow:ellipsis}#easy-hint b{color:#ffea28}`;
+      document.head.appendChild(css);
+      const hint=document.createElement("div");
+      hint.id="easy-hint";
+      hint.innerHTML="<b>WASD/←↑↓→</b> chạy + ngắm • <b>Space/Click</b> đánh thông minh • <b>J</b> cắt • <b>L</b> đập • <b>U</b> dink • <b>I</b> lob";
+      document.body.appendChild(hint);
+      return;
+    }
+    // ===== CẢM ỨNG: joystick nổi bên trái + cụm nút bên phải (CSS trong mobile.css) =====
+    const root=document.createElement("div");root.id="easy-controls-root";
+    root.innerHTML=`<div id="easy-joy-zone" class="hud-interactive"><div id="easy-joy-base"><div id="easy-joy-knob"></div></div></div>
 <div id="easy-pad" class="hud-interactive">
-<button class="main hud-interactive" data-k="smart">ĐÁNH</button>
 <button class="hud-interactive" data-k="slice">CẮT</button>
 <button class="hud-interactive" data-k="smash">ĐẬP</button>
 <button class="hud-interactive" data-k="dink">DINK</button>
-<button class="hud-interactive" data-k="lob">LOB</button></div>`;
+<button class="hud-interactive" data-k="lob">LOB</button>
+<button class="main hud-interactive" data-k="smart">ĐÁNH</button></div>`;
     document.body.appendChild(root);
-    const joy=root.querySelector("#easy-joy"),knob=root.querySelector("#easy-joy-knob");
-    let activeId=null;
-    const setJoy=e=>{
-      const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
-      let dx=(e.clientX-cx)/(r.width/2),dy=(e.clientY-cy)/(r.height/2);
-      const len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len;}
-      knob.style.transform=`translate(${dx*34}px,${dy*34}px)`;
+    const zone=root.querySelector("#easy-joy-zone"),base=root.querySelector("#easy-joy-base"),knob=root.querySelector("#easy-joy-knob");
+    const R=60,DZ=.22;let activeId=null,ox=0,oy=0;
+    const vib=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(_){}};
+    const axis=v=>Math.abs(v)<DZ?0:Math.sign(v)*Math.min(1,(Math.abs(v)-DZ)/(1-DZ)*1.25);
+    const upd=e=>{
+      let dx=(e.clientX-ox)/R,dy=(e.clientY-oy)/R;const len=Math.hypot(dx,dy);
+      if(len>1){dx/=len;dy/=len;}
+      knob.style.transform=`translate(${dx*R*.55}px,${dy*R*.55}px)`;
       this._padAim=true;
-      this.moveInput.x=Math.abs(dx)<.25?0:Math.sign(dx)*Math.min(1,Math.abs(dx)*1.2);
-      this.moveInput.z=Math.abs(dy)<.25?0:Math.sign(dy)*Math.min(1,Math.abs(dy)*1.2);
-      this.aimBiasX=this.moveInput.x;
+      this.moveInput.x=axis(dx);this.moveInput.z=axis(dy);this.aimBiasX=this.moveInput.x;
     };
-    const endJoy=()=>{activeId=null;knob.style.transform="";this._padAim=false;this.moveInput.x=0;this.moveInput.z=0;this.aimBiasX=0;};
-    joy.addEventListener("pointerdown",e=>{activeId=e.pointerId;joy.setPointerCapture(e.pointerId);setJoy(e);e.stopPropagation();});
-    joy.addEventListener("pointermove",e=>{if(e.pointerId===activeId)setJoy(e);});
-    joy.addEventListener("pointerup",e=>{if(e.pointerId===activeId)endJoy();});
-    joy.addEventListener("pointercancel",endJoy);
+    const end=()=>{
+      activeId=null;knob.style.transform="";base.classList.remove("active");
+      base.style.left="";base.style.top="";base.style.bottom="";
+      this._padAim=false;this.moveInput.x=0;this.moveInput.z=0;this.aimBiasX=0;
+    };
+    zone.addEventListener("pointerdown",e=>{
+      if(activeId!==null)return;
+      activeId=e.pointerId;try{zone.setPointerCapture(e.pointerId)}catch(_){}
+      const r=zone.getBoundingClientRect();
+      ox=Math.max(r.left+R,Math.min(r.right-R,e.clientX));oy=Math.max(r.top+R,Math.min(r.bottom-R,e.clientY));
+      base.classList.add("active");
+      base.style.left=(ox-r.left-R)+"px";base.style.top=(oy-r.top-R)+"px";base.style.bottom="auto";
+      vib(6);upd(e);e.preventDefault();e.stopPropagation();
+    });
+    zone.addEventListener("pointermove",e=>{if(e.pointerId===activeId){upd(e);e.preventDefault();}});
+    zone.addEventListener("pointerup",e=>{if(e.pointerId===activeId)end();});
+    zone.addEventListener("pointercancel",e=>{if(e.pointerId===activeId)end();});
+    zone.addEventListener("lostpointercapture",e=>{if(e.pointerId===activeId)end();});
     root.querySelectorAll("#easy-pad button").forEach(b=>{
-      b.addEventListener("pointerdown",e=>{e.stopPropagation();e.preventDefault();this.fireShot(b.dataset.k,{source:"touch_pad",dirX:this.moveInput.x});});
+      b.addEventListener("pointerdown",e=>{
+        e.stopPropagation();e.preventDefault();
+        b.classList.add("pressed");vib(10);
+        this.fireShot(b.dataset.k,{source:"touch_pad",dirX:this.moveInput.x});
+      });
+      const up=()=>b.classList.remove("pressed");
+      b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("pointerleave",up);
     });
   }
   _startHudRenderLoop(){const e=()=>{this._disposed||(this.webcamActive&&this._processWebcamFrame(),this.webcamCanvas||(this.webcamCanvas=document.getElementById(this.webcamCanvasId),this.webcamCanvas&&(this.webcamCtx=this.webcamCanvas.getContext("2d"))),this.webcamCanvas&&this.webcamCtx&&this._drawHudCanvas(this.webcamCtx,this.webcamCanvas.width,this.webcamCanvas.height),this._rafId=requestAnimationFrame(e))};this._rafId=requestAnimationFrame(e)}_drawHudCanvas(e,t,i){if(e.clearRect(0,0,t,i),this.webcamActive&&this.videoElem&&this.videoElem.readyState>=2){e.save(),e.scale(-1,1),e.drawImage(this.videoElem,-t,0,t,i),e.restore();const d=performance.now();if(this.latestHandLandmarks&&d-(this.latestHandSeenAt||0)<240){const g=this.latestHandLandmarks,T=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];e.strokeStyle="#00e436",e.lineWidth=2;for(const[u,c]of T){const b=g[u],w=g[c];e.beginPath(),e.moveTo((1-b.x)*t,b.y*i),e.lineTo((1-w.x)*t,w.y*i),e.stroke()}for(let u=0;u<g.length;u++){const c=g[u];e.fillStyle=u===0||u===8||u===9?"#dfff00":"#ffffff",e.beginPath(),e.arc((1-c.x)*t,c.y*i,u===0||u===9?3.5:2,0,Math.PI*2),e.fill()}}else{const g=t/this.flowWidth,T=i/this.flowHeight;e.fillStyle="rgba(223, 255, 0, 0.35)";for(let u=0;u<this.flowHeight;u+=2)for(let c=0;c<this.flowWidth;c+=2)this.motionEnergyMap[u*this.flowWidth+c]>.14&&e.fillRect(c*g,u*T,g*1.8,T*1.8)}}else{const d=e.createRadialGradient(t*.5,i*.5,6,t*.5,i*.5,t*.65);d.addColorStop(0,"rgba(24, 68, 42, 0.92)"),d.addColorStop(1,"rgba(10, 24, 36, 0.96)"),e.fillStyle=d,e.fillRect(0,0,t,i),e.strokeStyle="rgba(255, 255, 255, 0.14)",e.lineWidth=1,e.beginPath(),e.moveTo(0,i*.5),e.lineTo(t,i*.5),e.moveTo(t*.5,0),e.lineTo(t*.5,i),e.arc(t*.5,i*.5,Math.min(t,i)*.32,0,Math.PI*2),e.stroke()}const n=performance.now()-this.lastVisualSwing.timestamp,h=n<550,p=this.webcamActive?this.smoothedCentroid.x*t:t*.5,f=this.webcamActive?this.smoothedCentroid.y*i:i*.52;e.save();const s=(this.phoneState.orientation.roll||this.aimBiasX*28)*Math.PI/180;e.translate(p,f),e.rotate(s),e.strokeStyle=h?"#dfff00":"#00c8ff",e.lineWidth=2.2,e.beginPath(),e.ellipse(0,0,14,18,0,0,Math.PI*2),e.stroke(),e.beginPath(),e.moveTo(0,18),e.lineTo(0,28),e.stroke(),e.restore();let l=this.webcamActive?this.motionVector.vx*26:0,r=this.webcamActive?this.motionVector.vy*26:0;if(h){const d=1-n/550;l=this.lastVisualSwing.dirX*36*d,r=this.lastVisualSwing.dirY*32*d}if(Math.hypot(l,r)>3){const d=p+l,m=f+r,g=Math.atan2(r,l);e.save(),e.strokeStyle="#dfff00",e.fillStyle="#dfff00",e.lineWidth=2.5,e.beginPath(),e.moveTo(p,f),e.lineTo(d,m),e.stroke(),e.beginPath(),e.moveTo(d,m),e.lineTo(d-7*Math.cos(g-.5),m-7*Math.sin(g-.5)),e.lineTo(d-7*Math.cos(g+.5),m-7*Math.sin(g+.5)),e.closePath(),e.fill(),e.restore()}const o=h?Math.min(1,this.lastVisualSwing.speed/1.6*(1-n/650)):Math.min(1,this.motionVector.mag/1.4),y=5;e.fillStyle="rgba(0, 0, 0, 0.55)",e.fillRect(6,i-y-5,t-12,y),e.fillStyle=o>.75?"#dfff00":"#00d2ff",e.fillRect(6,i-y-5,(t-12)*o,y),e.fillStyle=h?"#dfff00":"rgba(255, 255, 255, 0.9)",e.font="bold 9px sans-serif";let P=this.webcamActive?"CAM OPTICAL FLOW":this.phoneState.connected?"POCKET RACKET LIVE":"MOTION RADAR";if(h){const d=this.lastVisualSwing.side==="backhand"?"BH":this.lastVisualSwing.side==="forehand"?"FH":"",m=(this.lastVisualSwing.shotType||"topspin").toUpperCase();P=d?`${d} \u2022 ${m}`:m}e.fillText(P,6,12)}_updateWebcamBadgeUI(e){const t=document.getElementById("webcam-status-badge")||document.getElementById("btn-webcam");t&&t.classList.toggle("active",e)}_updatePhoneBadgeUI(e){const t=document.getElementById("phone-status-badge")||document.getElementById("phone-racket-status");t&&(t.classList.toggle("connected",e),t.textContent=e?"Pocket Racket: Connected":"Pocket Racket: Ready")}_updateHudShotPills(e){if(typeof document>"u")return;const t=document.querySelectorAll("[data-shot-type]");!t||t.length===0||t.forEach(i=>{i.classList.toggle("active",i.dataset.shotType===e)})}_notifyStatus(e){typeof this.onStatusChange=="function"&&this.onStatusChange(e);for(const t of this._listeners.status)try{t(e)}catch(i){console.error(i)}}dispose(){this._disposed=!0,this.disableWebcam(),this.stopPhonePolling(),this._rafId&&cancelAnimationFrame(this._rafId),window.removeEventListener("keydown",this._onKeyDown),window.removeEventListener("keyup",this._onKeyUp),window.removeEventListener("pointerdown",this._onPointerDown),window.removeEventListener("pointermove",this._onPointerMove),window.removeEventListener("pointerup",this._onPointerUp),window.removeEventListener("blur",this._onBlur),window.removeEventListener("contextmenu",this._onContextMenu)}}export default MotionController;
