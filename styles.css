@@ -152,6 +152,33 @@
     grid-template-columns: 1fr;
   }
 }
+.scenery-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.scenery-active-badge {
+  font-size: 11px;
+  font-weight: 900;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid #7dd3fc;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.15);
+}
+.scenery-hud-btn {
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border-color: #38bdf8 !important;
+  color: #f8fafc !important;
+}
+.scenery-hud-btn:hover {
+  background: #0284c7 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
+}
 .player-name-section{margin-top:-2px}
 .setup-label{font-size:12px;font-weight:800;color:#334155;text-align:left;display:block;margin-bottom:3px}
 .wii-input-name{width:100%;padding:8px 14px;border-radius:12px;border:2px solid #93c5fd;background:#f0f9ff;font-family:var(--wii-font);font-size:14px;font-weight:800;color:#0f172a;outline:none;transition:border-color .15s ease,box-shadow .15s ease}

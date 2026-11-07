@@ -115,19 +115,19 @@
 
     <div id="bottom-right-dock" class="hud-corner-dock bottom-right-dock">
       <div class="shot-selector-bar" id="shot-selector-bar">
-        <button type="button" class="shot-chip active" data-shot="TOPSPIN" title="Cú Drive / Topspin (Phím 1)">
+        <button type="button" class="shot-chip active" data-shot="TOPSPIN" title="Cú Drive / Topspin (Phím 1): Cú đánh lớn cuộn xoáy topspin, bóng đi nhanh chúc xuống cuối sân, nảy vọt tới">
           <span>Drive</span><span class="shot-chip-key">1</span>
         </button>
-        <button type="button" class="shot-chip" data-shot="DINK" title="Cú Dink thả bóng vào bếp (Phím 2)">
+        <button type="button" class="shot-chip" data-shot="DINK" title="Cú Dink (Phím 2): Thả bóng mềm vào vùng bếp (NVZ), nảy thấp triệt tiêu lực tấn công">
           <span>Dink</span><span class="shot-chip-key">2</span>
         </button>
-        <button type="button" class="shot-chip" data-shot="SLICE" title="Cú Drop shot thứ 3 (Phím 3)">
-          <span>Drop</span><span class="shot-chip-key">3</span>
+        <button type="button" class="shot-chip" data-shot="SLICE" title="Cú Cắt / Drop Shot (Phím 3): Xoáy lùi (backspin), bóng đi chậm lơ lửng, nảy trượt là là và giảm tốc đột ngột">
+          <span>Cắt/Drop</span><span class="shot-chip-key">3</span>
         </button>
-        <button type="button" class="shot-chip" data-shot="FLAT" title="Cú Smash đập bóng (Phím 4)">
+        <button type="button" class="shot-chip" data-shot="FLAT" title="Cú Smash Đập bóng (Phím 4): Bóng đi cực nhanh và thấp! Lưu ý: Tỷ lệ vướng lưới cao nếu đánh quá thấp hoặc đứng xa lưới">
           <span>Smash</span><span class="shot-chip-key">4</span>
         </button>
-        <button type="button" class="shot-chip" data-shot="LOB" title="Cú Lob lốp bóng bổng (Phím 5)">
+        <button type="button" class="shot-chip" data-shot="LOB" title="Cú Lob Lốp bóng (Phím 5): Bóng đi chậm vồng cầu cao về cuối sân, tỷ lệ vướng lưới cực thấp">
           <span>Lob</span><span class="shot-chip-key">5</span>
         </button>
       </div>
@@ -165,6 +165,7 @@
           <div id="bottom-left-dock" class="hud-corner-dock bottom-left-dock">
             <div class="dock-pill-row">
               <button id="btn-lang-toggle" class="hud-mini-btn lang-toggle-btn" type="button" title="Chuyển đổi Tiếng Việt / English"><span>🇻🇳 VI</span></button>
+              <button id="btn-scenery-cycle" class="hud-mini-btn scenery-hud-btn" type="button" title="Đổi Sân Đấu Kỳ Quan (Landmark 81, Eiffel, Big Ben, Nha Trang...)"><span>🏟️</span><span id="scenery-label-hud">Landmark 81</span></button>
               <button id="btn-portal-hud" class="hud-mini-btn portal-hud-btn" type="button" title="Khám phá Giải Đấu Hachihi Open 2026"><span>🏆</span><span id="btn-portal-hud-text">Hachihi Open</span></button>
               <button id="btn-rules-hud" class="hud-mini-btn rules-hud-btn" type="button" title="Xem sổ tay luật chơi Pickleball"><span>📋</span><span id="btn-rules-hud-text">Luật chơi</span></button>
               <button id="btn-settings-hud" class="hud-mini-btn settings-hud-btn" type="button" title="Cài đặt Phím, Âm thanh & Ánh sáng"><span>⚙️</span><span id="btn-settings-hud-text">Cài đặt</span></button>
@@ -435,6 +436,63 @@
             <button type="button" class="wii-green-choice selected" data-difficulty="casual"><span class="choice-main" id="choice-diff-casual">Dễ (Người mới)</span></button>
             <button type="button" class="wii-green-choice" data-difficulty="pro"><span class="choice-main" id="choice-diff-pro">Vừa (Chuẩn)</span></button>
             <button type="button" class="wii-green-choice" data-difficulty="1v1"><span class="choice-main" id="choice-diff-1v1">Khó (Pro)</span></button>
+          </div>
+        </div>
+
+        <div class="setup-section" id="solo-scenery-section">
+          <div class="scenery-picker-header">
+            <label class="setup-label">🏟️ Chọn Sân Đấu Kỳ Quan / Court Scenery:</label>
+            <span class="scenery-active-badge" id="solo-selected-scenery-name">🏙️ Landmark 81 (TP.HCM)</span>
+          </div>
+          <div class="scenery-cards-grid" id="solo-scenery-grid">
+            <div class="scenery-card active" data-scenery="landmark81">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🏙️</span>
+                <span class="scenery-badge">Việt Nam 🇻🇳</span>
+              </div>
+              <strong class="scenery-title">Landmark 81 (TP.HCM)</strong>
+              <p class="scenery-desc">Tòa tháp cao nhất Việt Nam lấp lánh đèn LED vươn tới trời đêm sông Sài Gòn huyền ảo.</p>
+            </div>
+            <div class="scenery-card" data-scenery="eiffel">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🗼</span>
+                <span class="scenery-badge">Pháp 🇫🇷</span>
+              </div>
+              <strong class="scenery-title">Tháp Eiffel (Paris)</strong>
+              <p class="scenery-desc">Biểu tượng kinh đô ánh sáng với giàn thép vàng rực và chùm đèn pha quét hoàng hôn Paris.</p>
+            </div>
+            <div class="scenery-card" data-scenery="bigben">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🕰️</span>
+                <span class="scenery-badge">Anh 🇬🇧</span>
+              </div>
+              <strong class="scenery-title">Tháp Big Ben (Luân Đôn)</strong>
+              <p class="scenery-desc">Cung điện Westminster bên dòng sông Thames sương mù, mặt đồng hồ Big Ben phát sáng.</p>
+            </div>
+            <div class="scenery-card" data-scenery="newyork">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🗽</span>
+                <span class="scenery-badge">Hoa Kỳ 🇺🇸</span>
+              </div>
+              <strong class="scenery-title">New York &amp; Nữ Thần Tự Do</strong>
+              <p class="scenery-desc">Thành phố không ngủ, ngọn đuốc Nữ Thần Tự Do rực sáng cùng các tòa chọc trời Manhattan.</p>
+            </div>
+            <div class="scenery-card" data-scenery="nhatrang">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🏖️</span>
+                <span class="scenery-badge">Việt Nam 🇻🇳</span>
+              </div>
+              <strong class="scenery-title">Bãi Biển Nha Trang</strong>
+              <p class="scenery-desc">Bờ cát vàng óng ả, nước biển xanh ngọc bích, rặng dừa nhiệt đới và đảo ngọc ngoài khơi xa.</p>
+            </div>
+            <div class="scenery-card" data-scenery="hachihi_arena">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">⚡</span>
+                <span class="scenery-badge">Cyber Arena</span>
+              </div>
+              <strong class="scenery-title">Hachihi Cyber 2026</strong>
+              <p class="scenery-desc">Đấu trường thể thao mái vòm tương lai với dải LED neon Hachihi bùng nổ, kỷ niệm 17 năm Hoàng Mai.</p>
+            </div>
           </div>
         </div>
 
