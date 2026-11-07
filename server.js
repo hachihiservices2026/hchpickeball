@@ -86,6 +86,7 @@ function initRoom(roomId, hostName = "Hachihi Pro", matchType = "doubles", games
     teamAColor: "#ffea28",
     teamBColor: "#25a8f5",
     botDifficulty: "normal",
+    scenery: "landmark81",
     isPublic: true,
     started: false,
     slots: createDefaultSlots(matchType, hostName),
@@ -293,6 +294,7 @@ const server = http.createServer(async (req, res) => {
       if (body.teamAColor) targetRoom.teamAColor = String(body.teamAColor);
       if (body.teamBColor) targetRoom.teamBColor = String(body.teamBColor);
       if (body.botDifficulty) targetRoom.botDifficulty = String(body.botDifficulty);
+      if (body.scenery) targetRoom.scenery = String(body.scenery);
       if (body.isPublic !== undefined) targetRoom.isPublic = !!body.isPublic;
       if (body.gamesToWin) targetRoom.gamesToWin = Number(body.gamesToWin);
       if (body.matchType && body.matchType !== targetRoom.matchType) {
@@ -305,6 +307,7 @@ const server = http.createServer(async (req, res) => {
         teamAName: targetRoom.teamAName,
         teamBName: targetRoom.teamBName,
         matchType: targetRoom.matchType,
+        scenery: targetRoom.scenery,
         slots: targetRoom.slots
       });
       return;

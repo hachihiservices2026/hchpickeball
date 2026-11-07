@@ -15,6 +15,7 @@ export class MatchManager {
     this.botDifficulty = "normal";
     this.isHost = true;
     this.localPlayerSlot = "A1";
+    this.scenery = "landmark81";
     this.currentMatch = null;
     this.slots = [];
     this.messages = [];
@@ -425,11 +426,19 @@ export class MatchManager {
       teamAColor: this.teamAColor,
       teamBColor: this.teamBColor,
       botDifficulty: this.botDifficulty,
+      scenery: this.scenery,
       canStart: this.canStart(),
       slots: this.slots,
       messages: this.messages,
       started: this.started
     };
+  }
+
+  setScenery(sceneryId) {
+    if (sceneryId) {
+      this.scenery = sceneryId;
+    }
+    return this.scenery;
   }
 
   // Đồng bộ trạng thái từ Server
@@ -449,6 +458,7 @@ export class MatchManager {
     if (serverData.teamAColor) this.teamAColor = serverData.teamAColor;
     if (serverData.teamBColor) this.teamBColor = serverData.teamBColor;
     if (serverData.botDifficulty) this.botDifficulty = serverData.botDifficulty;
+    if (serverData.scenery) this.scenery = serverData.scenery;
     if (serverData.messages && Array.isArray(serverData.messages)) {
       this.messages = serverData.messages;
     }

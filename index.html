@@ -1098,6 +1098,24 @@
           </div>
         </div>
 
+        <!-- VISUAL QR CODE GENERATOR CARD (QUÉT BẰNG CAMERA ĐIỆN THOẠI ĐỂ VÀO PHÒNG) -->
+        <div class="lobby-qr-card" id="lobby-qr-container">
+          <div class="lobby-qr-frame">
+            <canvas id="lobby-qr-canvas" width="124" height="124"></canvas>
+            <img id="lobby-qr-img" width="124" height="124" alt="QR Code" class="hidden" />
+          </div>
+          <div class="lobby-qr-meta">
+            <div class="lobby-qr-title">📱 QUÉT MÃ QR BẰNG CAMERA ĐIỆN THOẠI</div>
+            <div class="lobby-qr-desc">Dùng camera điện thoại quét mã QR để vào phòng ngay lập tức không cần gõ mã. Hoặc gửi link bên dưới:</div>
+            <div class="lobby-qr-link-row">
+              <a id="lobby-qr-direct-link" href="#" target="_blank" rel="noopener" class="lobby-qr-url" title="Nhấp để mở link phòng">...</a>
+              <button type="button" id="btn-copy-lobby-qr-link" class="btn-tank-share">
+                <span>📋 Sao chép link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- GUEST VIEW: BẢNG TÓM TẮT TRẬN ĐẤU (CHỈ XEM CHO NGƯỜI CHƠI THAM GIA) -->
         <div id="lobby-guest-view" class="tank-section-box guest-summary-card hidden">
           <div class="guest-card-header">
@@ -1115,6 +1133,11 @@
             <div class="guest-info-item">
               <span class="info-label">⚔️ THỂ THỨC THI ĐẤU:</span>
               <strong class="info-val-text" id="guest-summary-mode">Đấu Đôi 2v2 (A vs B)</strong>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">🏟️ SÂN THI ĐẤU &amp; CẢNH QUAN:</span>
+              <strong class="info-val-text" id="guest-summary-scenery">🏙️ Landmark 81 (TP.HCM, VN)</strong>
             </div>
 
             <div class="guest-info-item">
@@ -1351,6 +1374,72 @@
             <button type="button" class="btn-speed-item" data-speed="5"><span>5<br><small>Turbo</small></span></button>
           </div>
           <div class="tank-speed-note">Chuẩn (Mặc định): Tốc độ phản xạ và quỹ đạo bóng Pickleball giải đấu Hachihi Open 2026.</div>
+        </div>
+
+        <!-- SECTION: CHỌN SÂN THI ĐẤU & KHUNG CẢNH (CẢNH ĐẸP VIỆT NAM & THẾ GIỚI) -->
+        <div class="tank-section-box">
+          <div class="tank-section-heading">
+            <span class="heading-icon">🏟️</span>
+            <span>CHỌN SÂN THI ĐẤU &amp; KHUNG CẢNH (CẢNH ĐẸP VIỆT NAM &amp; THẾ GIỚI):</span>
+            <span class="heading-badge" id="lobby-scenery-badge">VIỆT NAM 🇻🇳</span>
+          </div>
+          <p class="tank-section-sub">Chủ phòng có thể chọn khung cảnh kỳ quan yêu thích, đấu trường 3D sẽ tái hiện trực tiếp bên ngoài sân thi đấu:</p>
+
+          <div class="scenery-cards-grid" id="lobby-scenery-grid">
+            <div class="scenery-card active" data-scenery="landmark81">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🏙️</span>
+                <span class="scenery-badge">Việt Nam 🇻🇳</span>
+              </div>
+              <strong class="scenery-title">Landmark 81 (TP.HCM)</strong>
+              <p class="scenery-desc">Tòa tháp cao nhất Việt Nam vươn cao với đèn LED neon lấp lánh bên bờ sông Sài Gòn huyền ảo.</p>
+            </div>
+
+            <div class="scenery-card" data-scenery="eiffel">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🗼</span>
+                <span class="scenery-badge">Pháp 🇫🇷</span>
+              </div>
+              <strong class="scenery-title">Tháp Eiffel (Paris)</strong>
+              <p class="scenery-desc">Kinh đô ánh sáng hoa lệ với giàn thép vàng rực rỡ và chùm đèn pha quét bầu trời hoàng hôn Paris.</p>
+            </div>
+
+            <div class="scenery-card" data-scenery="bigben">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🕰️</span>
+                <span class="scenery-badge">Anh 🇬🇧</span>
+              </div>
+              <strong class="scenery-title">Tháp Big Ben (Luân Đôn)</strong>
+              <p class="scenery-desc">Cung điện Westminster bên dòng sông Thames mờ sương, mặt đồng hồ Big Ben phát sáng trang trọng.</p>
+            </div>
+
+            <div class="scenery-card" data-scenery="newyork">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🗽</span>
+                <span class="scenery-badge">Hoa Kỳ 🇺🇸</span>
+              </div>
+              <strong class="scenery-title">New York &amp; Nữ Thần Tự Do</strong>
+              <p class="scenery-desc">Thành phố không ngủ, ngọn đuốc Nữ Thần Tự Do rực sáng cùng các tòa chọc trời Manhattan huyền thoại.</p>
+            </div>
+
+            <div class="scenery-card" data-scenery="nhatrang">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">🏖️</span>
+                <span class="scenery-badge">Việt Nam 🇻🇳</span>
+              </div>
+              <strong class="scenery-title">Biển Nhiệt Đới Nha Trang</strong>
+              <p class="scenery-desc">Bờ cát vàng óng ả, nước biển xanh ngọc bích, rặng dừa đung đưa và các hòn đảo ngọc ngoài khơi xa.</p>
+            </div>
+
+            <div class="scenery-card" data-scenery="hachihi_arena">
+              <div class="scenery-card-header">
+                <span class="scenery-icon">⚡</span>
+                <span class="scenery-badge">Cyber Arena</span>
+              </div>
+              <strong class="scenery-title">Hachihi Cyber Arena 2026</strong>
+              <p class="scenery-desc">Đấu trường thể thao mái vòm tương lai với dải LED neon Hachihi bùng nổ, kỷ niệm 17 năm Hoàng Mai.</p>
+            </div>
+          </div>
         </div>
       </div>
 

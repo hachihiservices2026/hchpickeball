@@ -4,6 +4,154 @@
 /* --- Pickleball Hachihi Theme & Controls --- */
 .hachihi-pill-tag{display:inline-block;margin:0 auto 4px;padding:2px 14px;border-radius:999px;background:linear-gradient(90deg,#0ea5e9,#10b981);color:#fff;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .hachihi-sub-tag{font-size:12px;font-weight:800;color:#0369a1;margin-top:2px;letter-spacing:.02em}
+
+/* --- HchPickleball & Scenery / QR Enhancements --- */
+.logo-word-hchpickeball {
+  color: #169bf0;
+  font-style: italic;
+  text-shadow: 0 3px 0 #bfe6ff;
+}
+
+.lobby-qr-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(16, 185, 129, 0.1));
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-top: 12px;
+}
+.lobby-qr-frame {
+  width: 124px;
+  height: 124px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+}
+.lobby-qr-frame canvas,
+.lobby-qr-frame img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+.lobby-qr-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.lobby-qr-title {
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #ffea28;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.lobby-qr-desc {
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+.lobby-qr-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lobby-qr-url {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38bdf8;
+  text-decoration: underline;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lobby-qr-url:hover {
+  color: #7dd3fc;
+}
+
+.scenery-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.scenery-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.75);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.16s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+.scenery-card:hover {
+  border-color: #38bdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+}
+.scenery-card.active {
+  border-color: #ffea28;
+  background: linear-gradient(145deg, rgba(30, 58, 138, 0.85), rgba(15, 23, 42, 0.92));
+  box-shadow: 0 0 0 2px #ffea28, 0 6px 18px rgba(255, 234, 40, 0.32);
+  transform: translateY(-2px);
+}
+.scenery-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.scenery-icon {
+  font-size: 22px;
+}
+.scenery-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+.scenery-card.active .scenery-badge {
+  background: #ffea28;
+  color: #0f172a;
+}
+.scenery-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.scenery-desc {
+  font-size: 10.5px;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+@media (max-width: 640px) {
+  .lobby-qr-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .scenery-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .player-name-section{margin-top:-2px}
 .setup-label{font-size:12px;font-weight:800;color:#334155;text-align:left;display:block;margin-bottom:3px}
 .wii-input-name{width:100%;padding:8px 14px;border-radius:12px;border:2px solid #93c5fd;background:#f0f9ff;font-family:var(--wii-font);font-size:14px;font-weight:800;color:#0f172a;outline:none;transition:border-color .15s ease,box-shadow .15s ease}

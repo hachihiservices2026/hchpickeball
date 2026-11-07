@@ -1,5 +1,7 @@
 import { renderAllHudMiiAvatars as P, renderMiiAvatar as L } from "./mii_avatars.js";
 import { MatchManager } from "./match_manager.js";
+import { drawQRCodeToCanvas } from "./qr_generator.js";
+import { SCENERIES } from "./court_scenery.js";
 
 const I18N = {
   vi: {

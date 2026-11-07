@@ -91,6 +91,7 @@ function createRoom(id, hostName = "Hachihi Pro", guestName = "Challenger", game
     teamAColor: "#ffea28",
     teamBColor: "#25a8f5",
     botDifficulty: "normal",
+    scenery: "landmark81",
     isPublic: true,
     started: false,
     slots: createDefaultSlots(matchType, hostName),
@@ -286,6 +287,7 @@ function tennisRelayPlugin() {
           teamAColor: room.teamAColor || "#ffea28",
           teamBColor: room.teamBColor || "#25a8f5",
           botDifficulty: room.botDifficulty || "normal",
+          scenery: room.scenery || "landmark81",
           isPublic: room.isPublic !== false,
           started: !!room.started,
           slots: room.slots || [],
@@ -445,6 +447,7 @@ function tennisRelayPlugin() {
           if (body.teamAColor) room.teamAColor = String(body.teamAColor);
           if (body.teamBColor) room.teamBColor = String(body.teamBColor);
           if (body.botDifficulty) room.botDifficulty = String(body.botDifficulty);
+          if (body.scenery) room.scenery = String(body.scenery);
           if (body.isPublic !== undefined) room.isPublic = !!body.isPublic;
           if (body.gamesToWin) room.gamesToWin = Number(body.gamesToWin);
           if (body.matchType && body.matchType !== room.matchType) {
@@ -457,6 +460,7 @@ function tennisRelayPlugin() {
             teamAName: room.teamAName,
             teamBName: room.teamBName,
             matchType: room.matchType,
+            scenery: room.scenery,
             slots: room.slots
           });
           return;
