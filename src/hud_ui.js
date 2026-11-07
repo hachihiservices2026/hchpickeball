@@ -133,9 +133,11 @@ export class HudUI {
     this.selectedFormat = "doubles";
     this._lobbyPollTimer = null;
     this._matchStartedLocally = false;
+    this.selectedScenery = "landmark81";
 
     this._renderAllMiiPortraits();
     this._bindEvents();
+    this.setSelectedScenery(this.selectedScenery);
     this.matchManager.autoFillBots(this.selectedFormat, this.selectedDifficulty);
     this.updateSoloBotNotice();
     this._initUrlParamsState();
@@ -765,6 +767,34 @@ export class HudUI {
       T.addEventListener("click", () => {
         this.hideVictoryModal();
         this.showTitleModal();
+      });
+
+    // Scenery Cards Click Handlers (Solo setup, Lobby & Stage)
+    const sceneryCards = document.querySelectorAll(".scenery-card");
+    sceneryCards.forEach(card => {
+      card.addEventListener("click", () => {
+        const scId = card.dataset.scenery;
+        if (!scId) return;
+        this.setSelectedScenery(scId);
+        this.callbacks.onSelectScenery && this.callbacks.onSelectScenery(scId);
+      });
+    });
+
+    const btnSceneryCycle = document.getElementById("btn-scenery-cycle");
+    btnSceneryCycle &&
+      btnSceneryCycle.addEventListener("click", e => {
+        e.stopPropagation();
+        const order = ["landmark81", "eiffel", "bigben", "newyork", "nhatrang", "hachihi_arena"];
+        const idx = order.indexOf(this.selectedScenery || "landmark81");
+        const nextId = order[(idx + 1) % order.length];
+        this.setSelectedScenery(nextId);
+        this.callbacks.onSelectScenery && this.callbacks.onSelectScenery(nextId);
+        const scInfo = SCENERIES[nextId];
+        this.showTimingPopup({
+          grade: "ĐỔI SÂN KỲ QUAN",
+          detail: scInfo ? `${scInfo.icon} ${scInfo.name}` : nextId,
+          durationMs: 1400
+        });
       });
 
     // ==========================================
@@ -2216,5 +2246,33 @@ export class HudUI {
         }, 950))));
     this.elOpponentPresenceText && (this.elOpponentPresenceText.textContent = r);
     e && e.classList.toggle("opponent-ready", a);
+  }
+
+  setSelectedScenery(scId) {
+    this.selectedScenery = scId;
+    const info = SCENERIES[scId] || SCENERIES.landmark81;
+    this.updateSceneryUI(info);
+    if (this.matchManager) {
+      this.matchManager.setScenery(scId);
+    }
+  }
+
+  updateSceneryUI(info) {
+    if (!info) return;
+    const scId = info.id;
+    document.querySelectorAll(".scenery-card").forEach(c => {
+      c.classList.toggle("active", c.dataset.scenery === scId);
+    });
+    const soloBadge = document.getElementById("solo-selected-scenery-name");
+    if (soloBadge) soloBadge.textContent = `${info.icon} ${info.name}`;
+    const lobbyBadge = document.getElementById("lobby-scenery-badge");
+    if (lobbyBadge) lobbyBadge.textContent = (info.badge || info.name).toUpperCase();
+    const guestSummary = document.getElementById("guest-summary-scenery");
+    if (guestSummary) guestSummary.textContent = `${info.icon} ${info.name}`;
+    const hudLabel = document.getElementById("scenery-label-hud");
+    if (hudLabel) {
+      const shortName = info.name.split(" ")[0].replace(/[^A-Za-z0-9]/g, "") || "Sân Đấu";
+      hudLabel.textContent = `${info.icon} ${shortName}`;
+    }
   }
 }
