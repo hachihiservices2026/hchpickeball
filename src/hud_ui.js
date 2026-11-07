@@ -68,6 +68,14 @@ const I18N = {
   }
 };
 
+// Nhãn cấp độ bot hiển thị trong lobby (nhận cả khoá cũ casual/pro/turbo)
+function botLevelLabel(level) {
+  const k = String(level || "normal").toLowerCase();
+  if (k === "easy" || k === "casual" || k === "1") return "Cấp 1 [Dở]";
+  if (k === "hard" || k === "1v1" || k === "turbo" || k === "3") return "Cấp 3 [Rất thông minh]";
+  return "Cấp 2 [Hay]";
+}
+
 export class HudUI {
   constructor(t = {}) {
     this.callbacks = t;
@@ -1030,20 +1038,26 @@ export class HudUI {
     const speedBtns = document.querySelectorAll("#tank-speed-group .btn-speed-item");
     const speedBadge = document.getElementById("tank-speed-badge");
     const speedLevels = {
-      1: { diff: "easy", label: "CẤP 1 [CHẬM] - 0.7x" },
-      2: { diff: "casual", label: "CẤP 2 [VỪA] - 0.85x" },
-      3: { diff: "normal", label: "CẤP 3 [CHUẨN] - 1.0x" },
-      4: { diff: "pro", label: "CẤP 4 [NHANH] - 1.2x" },
-      5: { diff: "turbo", label: "CẤP 5 [TURBO] - 1.4x" }
+      1: { diff: "easy", label: "CẤP 1 [DỞ]", note: "Cấp 1: Bot chạy chậm, phản xạ trễ, hay đánh hỏng và đặt bóng lung tung - dành cho người mới tập." },
+      2: { diff: "normal", label: "CẤP 2 [HAY]", note: "Cấp 2: Bot đánh ổn định, biết dink vào bếp và smash khi bóng bổng." },
+      3: { diff: "hard", label: "CẤP 3 [RẤT THÔNG MINH]", note: "Cấp 3: Bot rất nhanh, gần như không lỗi, đọc vị trí của bạn để đánh vào góc trống, lob qua đầu và dink hiểm." }
+    };
+    const speedNote = document.getElementById("tank-speed-note");
+    const applyBotLevelUI = (sp) => {
+      const info = speedLevels[sp] || speedLevels[2];
+      speedBtns.forEach(b => b.classList.toggle("active", parseInt(b.dataset.speed || "2", 10) === sp));
+      if (speedBadge) speedBadge.textContent = info.label;
+      if (speedNote) speedNote.textContent = info.note;
+      return info;
     };
     speedBtns.forEach(btn => {
       btn.addEventListener("click", async () => {
-        speedBtns.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
-        const sp = parseInt(btn.dataset.speed || "3", 10);
-        const info = speedLevels[sp] || speedLevels[3];
-        if (speedBadge) speedBadge.textContent = info.label;
+        const sp = parseInt(btn.dataset.speed || "2", 10);
+        const info = applyBotLevelUI(sp);
+        // Áp cấp độ mới cho mọi bot đang có trong phòng (cả client lẫn server)
         this.matchManager.botDifficulty = info.diff;
+        (this.matchManager.slots || []).forEach(sl => { if (sl.playerType === "bot") sl.botDifficulty = info.diff; });
+        try { this.updateLobbyUI && this.updateLobbyUI(); } catch {}
         try {
           await fetch("/api/match/team/update", {
             method: "POST",
@@ -1550,14 +1564,7 @@ export class HudUI {
     const elBotSpeed = document.getElementById("guest-summary-bot-speed");
     if (elBotSpeed) {
       const diff = (this.matchManager.botDifficulty || "normal").toLowerCase();
-      const labels = {
-        easy: "Cấp 1 [Chậm] - 0.7x",
-        casual: "Cấp 2 [Vừa] - 0.85x",
-        normal: "Cấp 3 [Chuẩn] - 1.0x",
-        pro: "Cấp 4 [Nhanh] - 1.2x",
-        turbo: "Cấp 5 [Turbo] - 1.4x"
-      };
-      elBotSpeed.textContent = labels[diff] || "Cấp 3 [Chuẩn] - 1.0x";
+      elBotSpeed.textContent = botLevelLabel(diff);
     }
 
     // 5. Chủ phòng
@@ -1721,7 +1728,7 @@ export class HudUI {
             </div>
           </div>`;
       } else if (slot.playerType === "bot") {
-        const botSpeed = (slot.botDifficulty || this.matchManager.botDifficulty || "normal").toUpperCase();
+        const botSpeed = botLevelLabel(slot.botDifficulty || this.matchManager.botDifficulty || "normal").toUpperCase();
         html += `
           <div class="tank-member-row bot-member" id="row-slot-${slot.slotId}" data-slot="${slot.slotId}" draggable="true" title="Kéo thả để đổi vị trí hoặc chuyển đội">
             <div class="member-info-col">
