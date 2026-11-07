@@ -2078,8 +2078,10 @@ export class HudUI {
     deuceLabel: e = null,
     playerGames: i = 0,
     opponentGames: o = 0,
-    gamesToWin: s = 2
+    gamesToWin: s = 2,
+    server: srvTeam = null
   }) {
+    this._updateServerChip(sNum, srvTeam);
     if (this.elScoreCenter) {
       if (e) {
         this.elScoreCenter.classList.add("deuce-mode");
@@ -2102,6 +2104,17 @@ export class HudUI {
       this.elGamesOpponent &&
         this.elGamesOpponent.querySelectorAll(".game-bubble").forEach((r, m) => r.classList.toggle("won", m < o));
     }
+  }
+
+  // Chip "Giao bóng · người số N" dưới bảng điểm + chấm báo bên đang giao
+  _updateServerChip(sNum, srvTeam) {
+    const chip = document.getElementById("server-chip");
+    const txt = document.getElementById("server-chip-text");
+    const n = sNum || 2;
+    if (txt) txt.textContent = this.currentLang === "en" ? `Serving · player #${n}` : `Giao bóng · người số ${n}`;
+    if (chip) chip.dataset.short = this.currentLang === "en" ? `Serve #${n}` : `Giao #${n}`;
+    const board = document.getElementById("scoreboard-pill");
+    if (board && srvTeam) board.dataset.server = srvTeam === "opponent" ? "opponent" : "player";
   }
 
   updateServerTag(t, n, serverNumber = 2) {
@@ -2139,7 +2152,7 @@ export class HudUI {
     grade: t = "PERFECT",
     detail: n = "DINK \u2022 KITCHEN DROP",
     screenPos: e = null,
-    durationMs: i = 1200
+    durationMs: i = 700
   }) {
     if (this.elTimingPopup) {
       if (this.timingPopupTimer && clearTimeout(this.timingPopupTimer)) {
@@ -2171,11 +2184,26 @@ export class HudUI {
     }
   }
 
+  // Ưu tiên banner: 1 = thắng ván/trận, game/match point (giữa) · 2 = lỗi, ra ngoài (trên giữa) · 3 = còn lại.
+  // Chỉ một banner hiện cùng lúc; ưu tiên thấp hơn không được ghi đè banner ưu tiên cao đang hiện.
+  _bannerPriorityOf(style, text) {
+    if (style === "style-gold") return 1;
+    if (style === "style-fault") return 2;
+    if (style === "style-score") return 2;
+    return 3;
+  }
+
   showCenterBanner(t, { style: n = "style-gold", subText: e = "", durationMs: i = 1600, persistent: o = !1 } = {}) {
     if (!this.elBannerLayer || !this.elBannerText) return;
+    const prio = this._bannerPriorityOf(n, t);
+    const now = Date.now();
+    if (this._bannerPrio && this._bannerUntil > now && prio > this._bannerPrio) return; // đang có banner quan trọng hơn
+    this._bannerPrio = prio;
+    this._bannerUntil = now + (o ? 2500 : Math.max(300, i));
     this.bannerTimer && (clearTimeout(this.bannerTimer), (this.bannerTimer = null));
     this.elBannerText.textContent = t;
     this.elBannerText.className = `center-banner-text ${n}`;
+    this.elBannerLayer.classList.toggle("banner-top", prio === 2);
     this.elBannerSub &&
       (e ? ((this.elBannerSub.textContent = e), this.elBannerSub.classList.remove("hidden")) : this.elBannerSub.classList.add("hidden"));
     this.elBannerLayer.classList.remove("hidden");
@@ -2187,6 +2215,8 @@ export class HudUI {
   }
 
   hideCenterBanner() {
+    this._bannerPrio = 0;
+    this._bannerUntil = 0;
     this.bannerTimer && (clearTimeout(this.bannerTimer), (this.bannerTimer = null));
     this.elBannerLayer && this.elBannerLayer.classList.add("hidden");
   }
