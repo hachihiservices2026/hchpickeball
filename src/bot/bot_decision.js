@@ -1,7 +1,11 @@
 // Pickleball BOT Decision & Shot Selection Engine
-// Quyết định chiến thuật đánh bóng, tuân thủ luật Kitchen (NVZ) & Two-Bounce
+// Quyết định chiến thuật đánh bóng, tuân thủ luật Kitchen (NVZ) & Two-Bounce.
+// Chất lượng quyết định phụ thuộc cấp độ bot (xem bot_difficulty.js).
 
 import * as THREE from "three";
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const jitter = (amp) => (Math.random() * 2 - 1) * amp;
 
 export class BotDecision {
   constructor(actor, difficultyConfig) {
@@ -16,127 +20,135 @@ export class BotDecision {
 
   // Quyết định giao bóng (Serve)
   evaluateServe() {
-    // BOT chọn góc giao bóng chéo sân theo luật Pickleball (Deuce / Ad court)
-    const isHard = this.diffConfig.id === "hard";
-    const speed = isHard ? 1.42 : this.diffConfig.id === "normal" ? 1.25 : 1.05;
-    const dirX = (Math.random() - 0.5) * 0.45;
+    const d = this.diffConfig;
+    const isHard = d.id === "hard";
     return {
-      timing: isHard ? "PERFECT" : Math.random() < 0.75 ? "GOOD" : "EARLY",
-      speed,
-      dirX,
+      timing: isHard ? "PERFECT" : Math.random() < d.sweetSpotChance ? "GOOD" : "EARLY",
+      speed: d.serveSpeed || 1.25,
+      dirX: jitter(d.id === "easy" ? 0.9 : d.id === "normal" ? 0.5 : 0.35),
       shotType: isHard && Math.random() < 0.4 ? "POWER" : "TOPSPIN"
     };
   }
 
   // Quyết định cú đánh trong pha bóng (Rally)
   evaluateRallyShot(ball, opponents = []) {
+    const d = this.diffConfig;
     const ballPos = ball.pos;
     const isHighBall = ballPos.y > 1.62;
     const isNearNet = Math.abs(ballPos.z) < 4.2;
     const strokeCount = ball.rallyStrokeCount || 0;
+    const s = this.sideSign;
 
-    // Phân tích vị trí đối thủ để tìm góc trống
-    let openCornerX = 0;
-    if (opponents.length > 0) {
-      const avgOppX = opponents.reduce((sum, opp) => sum + opp.pos.x, 0) / opponents.length;
+    // Phân tích vị trí đối thủ
+    const hasOpp = opponents.length > 0;
+    const avgOppX = hasOpp ? opponents.reduce((sum, o) => sum + o.pos.x, 0) / opponents.length : 0;
+    const avgOppDepth = hasOpp ? opponents.reduce((sum, o) => sum + Math.abs(o.pos.z), 0) / opponents.length : 7;
+    const oppsAtNet = hasOpp && opponents.every((o) => Math.abs(o.pos.z) < 4.6);
+    const oppsDeep = hasOpp && avgOppDepth > 8.0;
+
+    // Góc trống: bot cao cấp nhắm đúng chỗ trống, bot yếu đánh ngẫu nhiên
+    let openCornerX;
+    if (Math.random() < d.placementSkill && hasOpp) {
       openCornerX = avgOppX >= 0 ? -2.4 : 2.4;
     } else {
-      openCornerX = (Math.random() < 0.5 ? -1 : 1) * 2.2;
+      openCornerX = (Math.random() < 0.5 ? -1 : 1) * rand(0.6, 2.6);
     }
 
     let selectedShot = "TOPSPIN";
-    let targetZ = -this.sideSign * (7.8 + Math.random() * 2.6);
-    let targetX = openCornerX * 0.85 + (Math.random() - 0.5) * 0.6;
+    let targetZ = -s * rand(7.8, 10.4);
+    let targetX = openCornerX * 0.85 + jitter(0.3);
     let flightDuration = 0.72;
     let topspin = 18;
     let sidespin = 0;
 
-    // Cú đánh thứ 3 (3rd Shot): BOT linh hoạt giữa Topspin Drive an toàn hoặc Drop shot mềm
+    // Bot thông minh: đối thủ dâng lưới thì lob qua đầu, đối thủ lùi sâu thì dink kéo lên
+    const lobChance = oppsAtNet ? d.lobTendency : d.lobTendency * 0.25;
+    const dinkChance = d.smart && oppsDeep ? Math.min(0.9, d.dinkTendency * 1.7) : d.dinkTendency;
+
     if (strokeCount === 2) {
-      if (Math.random() < this.diffConfig.dinkTendency) {
-        selectedShot = "SLICE"; // Drop shot cắt xoáy rơi an toàn qua lưới
-        targetZ = -this.sideSign * (2.6 + Math.random() * 1.2);
+      // Cú thứ 3: drop shot mềm hoặc drive sâu
+      if (Math.random() < dinkChance) {
+        selectedShot = "SLICE";
+        targetZ = -s * rand(2.6, 3.8);
         flightDuration = 1.05;
         topspin = -10;
         sidespin = (Math.random() < 0.5 ? -1 : 1) * 6;
       } else {
-        selectedShot = "TOPSPIN"; // Drive bóng sâu an toàn
-        targetZ = -this.sideSign * (8.2 + Math.random() * 2.2);
-        flightDuration = 0.72;
-        topspin = 18;
+        selectedShot = "TOPSPIN";
+        targetZ = -s * rand(8.2, 10.4);
       }
-    } 
-    // Smash khi bóng bổng và ở cự ly hợp lý (không smash mù quáng khi ở tít cuối sân)
-    else if (isHighBall && (isNearNet || Math.abs(this.actor.pos.z) < 7.0) && Math.random() < this.diffConfig.smashTendency) {
-      selectedShot = "FLAT"; // Smash đập dứt điểm dũng mãnh
-      targetZ = -this.sideSign * (7.5 + Math.random() * 3.0);
+    } else if (isHighBall && (isNearNet || Math.abs(this.actor.pos.z) < 7.0) && Math.random() < d.smashTendency) {
+      selectedShot = "FLAT"; // Smash
+      targetZ = -s * rand(7.5, 10.5);
       flightDuration = 0.50;
       topspin = 22;
       targetX = openCornerX * 0.95;
-    } 
-    // Dink đấu bếp (Kitchen battle) khi bóng rơi gần lưới: nảy êm vào NVZ
-    else if (isNearNet && Math.random() < this.diffConfig.dinkTendency) {
+    } else if (Math.random() < lobChance && oppsAtNet) {
+      selectedShot = "LOB"; // Lob qua đầu đối thủ đang áp lưới
+      targetZ = -s * rand(9.6, 10.9);
+      flightDuration = 1.5;
+      topspin = 4;
+    } else if (isNearNet && Math.random() < dinkChance) {
       selectedShot = "DINK";
-      targetZ = -this.sideSign * (1.6 + Math.random() * 0.8);
+      targetZ = -s * rand(1.6, 2.4);
       flightDuration = 0.95;
       topspin = 4;
       targetX = THREE.MathUtils.clamp(targetX * 0.6, -2.6, 2.6);
-    } 
-    // Lob phòng thủ khi bị ép góc dạt ra biên: bóng đi cao, an toàn
-    else if (Math.abs(this.actor.pos.x) > 2.9 && Math.random() < 0.20) {
-      selectedShot = "LOB";
-      targetZ = -this.sideSign * (9.5 + Math.random() * 1.5);
+    } else if (Math.abs(this.actor.pos.x) > 2.9 && Math.random() < 0.20) {
+      selectedShot = "LOB"; // Phòng thủ khi bị ép biên
+      targetZ = -s * rand(9.5, 11.0);
       flightDuration = 1.52;
       topspin = 4;
-    }
-    // Cắt Slice đổi nhịp trận đấu
-    else if (Math.random() < 0.18) {
+    } else if (Math.random() < 0.18) {
       selectedShot = "SLICE";
-      targetZ = -this.sideSign * (5.5 + Math.random() * 2.5);
+      targetZ = -s * rand(5.5, 8.0);
       flightDuration = 1.02;
       topspin = -12;
       sidespin = (Math.random() < 0.5 ? -1 : 1) * 8;
     }
 
-    // Sai số có kiểm soát theo cấp độ (chỉ lỗi rất hiếm khi chịu áp lực cao)
+    // Bot yếu bay chậm hơn (dễ đỡ), bot mạnh bay nhanh hơn
+    flightDuration *= d.flightScale || 1;
+
+    // Sai số ngắm theo cấp độ
+    targetX += jitter(d.aimNoise);
+    targetZ += -s * jitter(d.aimNoise * 0.9);
+
+    // Lỗi tự đánh hỏng theo cấp độ: ra biên hoặc vào lưới
     let allowFault = false;
-    if (Math.random() < this.diffConfig.errorProbability) {
-      if (Math.random() < 0.70) {
-        // Đánh hơi rộng ra biên một chút thay vì cắm thẳng vào lưới
-        targetX = (targetX >= 0 ? 1 : -1) * (4.25 + Math.random() * 0.35);
+    if (Math.random() < d.errorProbability) {
+      if (Math.random() < 0.65) {
+        targetX = (targetX >= 0 ? 1 : -1) * rand(4.55, 5.2);
       } else {
         allowFault = true;
       }
     }
 
-    // Luôn giữ bóng nằm an toàn trong sân đối phương nếu không cố ý đánh hỏng
+    // Nếu không cố ý hỏng thì giữ bóng trong sân đối phương
     if (!allowFault && Math.abs(targetX) <= 4.2) {
       targetX = THREE.MathUtils.clamp(targetX, -3.6, 3.6);
-      if (this.sideSign > 0) {
-        targetZ = THREE.MathUtils.clamp(targetZ, -10.8, -1.6);
-      } else {
-        targetZ = THREE.MathUtils.clamp(targetZ, 1.6, 10.8);
-      }
+      targetZ = s > 0
+        ? THREE.MathUtils.clamp(targetZ, -10.8, -1.6)
+        : THREE.MathUtils.clamp(targetZ, 1.6, 10.8);
     }
 
-    // Xác định tay thuận (forehand) hay tay nghịch (backhand)
-    const isBackhand = (this.actor.pos.x > ballPos.x && this.sideSign > 0) || (this.actor.pos.x < ballPos.x && this.sideSign < 0);
+    const isBackhand = (this.actor.pos.x > ballPos.x && s > 0) || (this.actor.pos.x < ballPos.x && s < 0);
     const swingSide = isHighBall ? "overhead" : isBackhand ? "backhand" : "forehand";
 
     return {
       shotType: selectedShot,
-      targetX: THREE.MathUtils.clamp(targetX, -4.5, 4.5),
+      targetX: THREE.MathUtils.clamp(targetX, -5.2, 5.2),
       targetZ,
       flightDuration,
       topspin,
       sidespin,
       allowFault,
       swingSide,
-      timingQuality: Math.random() < this.diffConfig.sweetSpotChance ? "PERFECT" : "GOOD",
+      timingQuality: Math.random() < d.sweetSpotChance ? "PERFECT" : "GOOD",
       speedKmh: Math.round(
-        selectedShot === "FLAT" ? this.diffConfig.shotSpeedMaxKmH : 
-        selectedShot === "DINK" ? 65 + Math.random() * 15 : 
-        this.diffConfig.shotSpeedMaxKmH * (0.7 + Math.random() * 0.25)
+        selectedShot === "FLAT" ? d.shotSpeedMaxKmH :
+        selectedShot === "DINK" ? 65 + Math.random() * 15 :
+        d.shotSpeedMaxKmH * (0.7 + Math.random() * 0.25)
       )
     };
   }
