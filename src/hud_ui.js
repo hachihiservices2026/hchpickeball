@@ -426,6 +426,9 @@ export class HudUI {
         this.matchManager.initRoomLobbySlots(this.playerName);
 
         // Hiển thị trực tiếp bảng tạo phòng ngay lập tức không để người dùng chờ
+        this._lockedRoomId = null;
+        this.currentRoomId = "";
+        this.matchManager.roomId = "";
         this.openRoomLobbyModal();
 
         try {
@@ -440,7 +443,9 @@ export class HudUI {
           });
           if (res.ok) {
             const data = await res.json();
-            const roomId = data.roomId || "10150";
+            if (!data.roomId) throw new Error("create: missing roomId");
+            const roomId = String(data.roomId);
+            this._lockedRoomId = roomId;
             this.currentRoomId = roomId;
             this.matchManager.roomId = roomId;
             if (data.slots && Array.isArray(data.slots)) {
@@ -453,9 +458,12 @@ export class HudUI {
             }
             this.updateLobbyUI();
             this.startLobbyPolling(roomId);
+          } else {
+            throw new Error("create: HTTP " + res.status);
           }
         } catch (e) {
-          console.warn("[Lobby] Create room network fallback:", e);
+          console.warn("[Lobby] Create room failed:", e);
+          this._showRoomError("Không tạo được phòng. Kiểm tra kết nối rồi thử lại.");
         }
       });
 
@@ -470,8 +478,12 @@ export class HudUI {
       const v = document.getElementById("player-name-input");
       v && v.value.trim() && this.setPlayerName(v.value.trim());
 
-      this.currentRoomId = raw;
-      this.matchManager.roomId = raw;
+      const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!code) { inputJoinCode && inputJoinCode.focus(); return; }
+      if (this.playerName === "Hachihi Pro" && !(v && v.value.trim())) this.setPlayerName("Khách " + Math.floor(100 + Math.random() * 900));
+      this._lockedRoomId = code;
+      this.currentRoomId = code;
+      this.matchManager.roomId = code;
       this.matchManager.isHost = false;
       this.matchManager.localPlayerSlot = "B1";
 
@@ -482,8 +494,12 @@ export class HudUI {
         const res = await fetch("/api/match/slot/join", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ room: raw, playerName: this.playerName })
+          body: JSON.stringify({ room: code, playerName: this.playerName })
         });
+        if (!res.ok) {
+          this._showRoomError(res.status === 409 ? "Phòng đã đầy." : "Không vào được phòng. Kiểm tra lại mã phòng.");
+          return;
+        }
         if (res.ok) {
           const data = await res.json();
           if (data.assignedSlot) {
@@ -493,12 +509,14 @@ export class HudUI {
             this.matchManager.slots = data.slots;
           }
           this.updateLobbyUI();
-          this.startLobbyPolling(raw);
+          this.startLobbyPolling(code);
         }
       } catch (err) {
         console.warn("[Lobby] Join network err:", err);
+        this._showRoomError("Mất kết nối khi vào phòng. Thử lại.");
       }
     };
+    this.joinRoomFromLink = (code) => { if (inputJoinCode) inputJoinCode.value = code; return doJoinRoom(); };
     btnSubmitJoin && btnSubmitJoin.addEventListener("click", doJoinRoom);
     inputJoinCode && inputJoinCode.addEventListener("keydown", (e) => {
       if (e.key === "Enter") doJoinRoom();
@@ -806,12 +824,15 @@ export class HudUI {
     const handleLeaveLobby = async () => {
       this.stopLobbyPolling();
       try {
-        await fetch("/api/match/slot/leave", {
+        if (this._lockedRoomId) await fetch("/api/match/leave", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ room: this.currentRoomId, slotId: this.matchManager.localPlayerSlot })
+          body: JSON.stringify({ room: this._lockedRoomId, slotId: this.matchManager.localPlayerSlot })
         });
       } catch {}
+      this._lockedRoomId = null;
+      this.currentRoomId = "";
+      this._lastQrUrl = null;
       this.closeRoomLobbyModal();
       this.showTitleModal();
     };
@@ -822,10 +843,9 @@ export class HudUI {
     const btnCopyRoomCode = document.getElementById("btn-copy-room-code");
     btnCopyRoomCode &&
       btnCopyRoomCode.addEventListener("click", () => {
-        const code = this.currentRoomId || "10150";
-        try {
-          navigator.clipboard && navigator.clipboard.writeText(code);
-        } catch {}
+        const code = this._lockedRoomId || "";
+        if (!code) return;
+        this._copyText(code);
         const orig = btnCopyRoomCode.innerHTML;
         btnCopyRoomCode.innerHTML = "<span>✓ Đã sao chép!</span>";
         setTimeout(() => { btnCopyRoomCode.innerHTML = orig; }, 1800);
@@ -835,10 +855,8 @@ export class HudUI {
     const btnCopyLobbyLink = document.getElementById("btn-copy-lobby-link");
     btnCopyLobbyLink &&
       btnCopyLobbyLink.addEventListener("click", () => {
-        const url = `${window.location.origin}/?room=${encodeURIComponent(this.currentRoomId || "10150")}`;
-        try {
-          navigator.clipboard && navigator.clipboard.writeText(url);
-        } catch {}
+        if (!this._lockedRoomId) return;
+        this._copyText(this._joinUrl());
         const orig = btnCopyLobbyLink.innerHTML;
         btnCopyLobbyLink.innerHTML = "<span>✓ Đã chép link!</span>";
         setTimeout(() => { btnCopyLobbyLink.innerHTML = orig; }, 1800);
@@ -1072,13 +1090,19 @@ export class HudUI {
       btnTankStart.addEventListener("click", async () => {
         if (!this.matchManager.isHost) return;
         if (!this.matchManager.canStart()) return;
+        let startOk = false;
         try {
-          await fetch("/api/match/start", {
+          const r = await fetch("/api/match/start", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ room: this.currentRoomId })
+            body: JSON.stringify({ room: this._lockedRoomId })
           });
+          startOk = r.ok;
         } catch {}
+        if (!startOk || !this._lockedRoomId) {
+          this._showRoomError("Không gửi được lệnh bắt đầu tới các máy khác. Thử lại.");
+          return;
+        }
         this.stopLobbyPolling();
         this.closeRoomLobbyModal();
         this.hideTitleModal();
@@ -1259,7 +1283,48 @@ export class HudUI {
       this.elRoomLobbyModal.classList.remove("hidden");
       this.elRoomLobbyModal.style.display = "flex";
     }
-    this.startLobbyPolling(this.currentRoomId || "10150");
+    if (this._lockedRoomId) this.startLobbyPolling(this._lockedRoomId);
+  }
+
+  _showRoomError(msg) {
+    const codeEl = document.getElementById("lobby-room-code-val");
+    if (codeEl) codeEl.textContent = "-----";
+    const banner = document.getElementById("tank-condition-banner");
+    if (banner) { banner.textContent = "⚠ " + msg; banner.classList.remove("hidden"); banner.style.display = "flex"; }
+    console.warn("[Lobby]", msg);
+  }
+
+  _joinUrl() {
+    return `${window.location.origin}/?room=${encodeURIComponent(this._lockedRoomId || "")}&role=p2&join=lobby`;
+  }
+
+  async _copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+    } catch {}
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch { return false; }
+  }
+
+  _renderLobbyQR(roomId) {
+    if (!roomId) return;
+    const url = this._joinUrl();
+    const link = document.getElementById("lobby-qr-direct-link");
+    if (link) { link.href = url; link.textContent = url.replace(/^https?:\/\//, ""); }
+    if (this._lastQrUrl === url) return;
+    const canvas = document.getElementById("lobby-qr-canvas");
+    if (!canvas) return;
+    try {
+      drawQRCodeToCanvas(canvas, url, { size: 248, margin: 2 });
+      canvas.style.width = "124px"; canvas.style.height = "124px";
+      this._lastQrUrl = url;
+    } catch (e) { console.warn("[Lobby] QR render failed:", e); }
   }
 
   closeRoomLobbyModal() {
@@ -1273,11 +1338,16 @@ export class HudUI {
   startLobbyPolling(roomId) {
     this.stopLobbyPolling();
     this._matchStartedLocally = false;
+    const gen = (this._pollGen = (this._pollGen || 0) + 1);
+    const rid = String(roomId || this._lockedRoomId || "");
+    if (!rid) return;
     const poll = async () => {
       try {
-        const res = await fetch(`/api/match/state?room=${encodeURIComponent(roomId || this.currentRoomId || "10150")}`);
+        const res = await fetch(`/api/match/state?room=${encodeURIComponent(rid)}`);
         if (res.ok) {
           const data = await res.json();
+          // drop stale / foreign responses so another room can never overwrite this lobby
+          if (gen !== this._pollGen || String(data.roomId).toUpperCase() !== rid.toUpperCase()) return;
           if (data.started && !this._matchStartedLocally) {
             this._matchStartedLocally = true;
             this.stopLobbyPolling();
@@ -1392,11 +1462,12 @@ export class HudUI {
   updateLobbyUI() {
     const isHost = !!this.matchManager.isHost;
     const isSingles = this.matchManager.matchType === "singles";
-    const roomId = this.matchManager.roomId || this.currentRoomId || "10150";
+    const roomId = this._lockedRoomId || "";
 
     // 1. Cập nhật mã phòng 5 chữ số
     const codeEl = document.getElementById("lobby-room-code-val");
-    if (codeEl) codeEl.textContent = roomId;
+    if (codeEl) codeEl.textContent = roomId || "-----";
+    this._renderLobbyQR(roomId);
 
     // 2. Cập nhật số lượng người chơi / slot
     const activeSlots = this.matchManager.slots.filter(s => s.playerType !== "empty");
@@ -1868,6 +1939,16 @@ export class HudUI {
     i && (i.textContent = n);
     const o = document.getElementById("victory-player-name");
     o && (o.textContent = `${n} (+120)`);
+    if (this._lockedRoomId && this.matchManager && this.matchManager.localPlayerSlot) {
+      const slotId = this.matchManager.localPlayerSlot;
+      const mine = (this.matchManager.slots || []).find((s) => s.slotId === slotId);
+      if (mine) mine.playerName = n;
+      fetch("/api/match/slot/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room: this._lockedRoomId, slotId, playerName: n })
+      }).catch(() => {});
+    }
   }
 
   setActiveShotChip(t = "TOPSPIN") {
@@ -2141,7 +2222,7 @@ export class HudUI {
   updateMultiplayerRoomInfo(t = {}) {
     const n = { ...(this._lastRoomStatus || {}), ...t };
     this._lastRoomStatus = n;
-    n.roomId && (this.currentRoomId = String(n.roomId).toLowerCase());
+    n.roomId && !this._lockedRoomId && String(n.roomId).toLowerCase() !== "default" && (this.currentRoomId = String(n.roomId));
     n.role && (this.playerRole = String(n.role).toLowerCase() === "p2" ? "p2" : "p1");
     if (n.tunnelUrl) {
       this.currentTunnelUrl = String(n.tunnelUrl).replace(/\/+$/, "");

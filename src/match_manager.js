@@ -453,6 +453,7 @@ export class MatchManager {
     if (serverData.roomId) {
       this.roomId = serverData.roomId;
     }
+    if (serverData.hostName) this.hostName = serverData.hostName;
     if (serverData.teamAName) this.teamAName = serverData.teamAName;
     if (serverData.teamBName) this.teamBName = serverData.teamBName;
     if (serverData.teamAColor) this.teamAColor = serverData.teamAColor;
