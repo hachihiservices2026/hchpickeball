@@ -24,8 +24,12 @@
       }
     })();
   </script>
+  <link rel="stylesheet" href="./fonts.css" />
+  <link rel="stylesheet" href="./tokens.css" />
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./mobile.css" />
+  <link rel="stylesheet" href="./phase1.css" />
+  <link rel="stylesheet" href="./phase2.css" />
 </head>
 <body>
   <div id="root" class="hidden" aria-hidden="true"></div>
@@ -74,11 +78,22 @@
         <span class="game-bubble extra-slot hidden" data-slot="2"></span>
       </div>
 
-      <button id="btn-pause-exit-hud" class="hud-pause-btn" type="button" title="Tạm dừng / Thoát trận đấu (Phím Esc hoặc P)">
-        <span class="pause-icon">⏸</span>
-        <span class="pause-text" id="btn-pause-exit-text">Thoát Trận</span>
-      </button>
     </header>
+
+    <div id="hud-top-actions" class="hud-top-actions">
+      <button id="btn-pause-exit-hud" class="hud-pause-btn btn-icon" type="button" title="Tạm dừng (Esc hoặc P)" aria-label="Tạm dừng">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/></svg>
+        <span class="pause-text sr-only" id="btn-pause-exit-text">Pause</span>
+      </button>
+      <button id="btn-hud-menu" class="hud-menu-btn btn-icon" type="button" title="Menu" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="hud-menu-sheet">
+        <svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
+      </button>
+    </div>
+
+    <div id="server-chip" class="server-chip" role="status" aria-live="polite">
+      <span class="server-dot" aria-hidden="true"></span>
+      <span id="server-chip-text">Giao bóng · người số 2</span>
+    </div>
 
     <div id="opponent-presence-pill" class="opponent-presence-pill hidden" aria-live="polite">
       <span id="opponent-presence-dot" class="presence-dot"></span>
@@ -133,7 +148,7 @@
       </div>
 
       <div id="timing-gauge-card" class="timing-gauge-card">
-        <div class="gauge-header">
+        <div class="gauge-header sr-only" aria-live="polite">
           <span id="gauge-mode-title">ĐỘ CHUẨN VUNG VỢT</span>
           <span id="gauge-speed-readout">SẴN SÀNG</span>
         </div>
@@ -154,40 +169,44 @@
           </div>
         </div>
 
-        <div class="motion-buttons-col">
-          <button id="btn-webcam-toggle" class="hud-mini-btn motion-btn" type="button">
-            <span class="btn-dot" id="webcam-status-dot"></span><span id="btn-webcam-text">Webcam</span>
-          </button>
-          <button id="btn-phone-racket" class="hud-mini-btn motion-btn hidden" type="button">
-            <span class="btn-dot" id="phone-status-dot"></span><span id="phone-status-label">Pocket Paddle</span>
-          </button>
+      </div>
+    </div>
 
+    <div id="hud-menu-sheet" class="hud-menu-sheet" role="dialog" aria-label="Menu trận đấu">
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-title">Menu</div>
           <div id="bottom-left-dock" class="hud-corner-dock bottom-left-dock">
-            <div class="dock-pill-row">
-              <button id="btn-lang-toggle" class="hud-mini-btn lang-toggle-btn" type="button" title="Chuyển đổi Tiếng Việt / English"><span>🇻🇳 VI</span></button>
-              <button id="btn-scenery-cycle" class="hud-mini-btn scenery-hud-btn" type="button" title="Đổi Sân Đấu Kỳ Quan (Landmark 81, Eiffel, Big Ben, Nha Trang...)"><span>🏟️</span><span id="scenery-label-hud">Landmark 81</span></button>
-              <button id="btn-portal-hud" class="hud-mini-btn portal-hud-btn" type="button" title="Khám phá Giải Đấu Hachihi Open 2026"><span>🏆</span><span id="btn-portal-hud-text">Hachihi Open</span></button>
-              <button id="btn-rules-hud" class="hud-mini-btn rules-hud-btn" type="button" title="Xem sổ tay luật chơi Pickleball"><span>📋</span><span id="btn-rules-hud-text">Luật chơi</span></button>
-              <button id="btn-settings-hud" class="hud-mini-btn settings-hud-btn" type="button" title="Cài đặt Phím, Âm thanh & Ánh sáng"><span>⚙️</span><span id="btn-settings-hud-text">Cài đặt</span></button>
-              <button id="btn-audio-toggle" class="hud-mini-btn" type="button" title="Toggle Lyria 3 Soundtrack & SFX"><span class="btn-dot music-on" id="audio-status-dot"></span><span id="audio-track-label">Lyria: Sunny Rally</span></button>
-              <button id="btn-camera-cycle" class="hud-mini-btn" type="button" title="Cycle Camera Angle (C)"><span id="cam-label-prefix">Góc:</span><strong id="camera-mode-label">Rally</strong></button>
-              <button id="btn-replay-trigger" class="hud-mini-btn" type="button" title="Toggle Instant Replay (R)"><span id="btn-replay-text">Replay</span></button>
-              <button id="btn-exit-match" class="hud-mini-btn exit-match-btn" type="button" title="Thoát ván đấu về Menu (Esc hoặc P)"><span>🚪</span><span id="btn-exit-match-text">Thoát</span></button>
-              <button id="btn-multiplayer-modal" class="hud-mini-btn hidden" type="button" title="Open 1v1 Multiplayer"><span>💬 1v1</span></button>
-            </div>
-          </div>
+        <div class="dock-pill-row">
+      <button id="btn-webcam-toggle" class="hud-mini-btn" type="button">
+        <span class="btn-dot" id="webcam-status-dot"></span><span id="btn-webcam-text">Webcam</span>
+      </button>
+      <button id="btn-phone-racket" class="hud-mini-btn hidden" type="button">
+        <span class="btn-dot" id="phone-status-dot"></span><span id="phone-status-label">Pocket Paddle</span>
+      </button>
+
+          <button id="btn-lang-toggle" class="hud-mini-btn lang-toggle-btn" type="button" title="Chuyển đổi Tiếng Việt / English"><span>🇻🇳 VI</span></button>
+          <button id="btn-scenery-cycle" class="hud-mini-btn scenery-hud-btn" type="button" title="Đổi Sân Đấu Kỳ Quan (Landmark 81, Eiffel, Big Ben, Nha Trang...)"><span>🏟️</span><span id="scenery-label-hud">Landmark 81</span></button>
+          <button id="btn-portal-hud" class="hud-mini-btn portal-hud-btn" type="button" title="Khám phá Giải Đấu Hachihi Open 2026"><span>🏆</span><span id="btn-portal-hud-text">Hachihi Open</span></button>
+          <button id="btn-rules-hud" class="hud-mini-btn rules-hud-btn" type="button" title="Xem sổ tay luật chơi Pickleball"><span>📋</span><span id="btn-rules-hud-text">Luật chơi</span></button>
+          <button id="btn-settings-hud" class="hud-mini-btn settings-hud-btn" type="button" title="Cài đặt Phím, Âm thanh & Ánh sáng"><span>⚙️</span><span id="btn-settings-hud-text">Cài đặt</span></button>
+          <button id="btn-audio-toggle" class="hud-mini-btn" type="button" title="Toggle Lyria 3 Soundtrack & SFX"><span class="btn-dot music-on" id="audio-status-dot"></span><span id="audio-track-label">Lyria: Sunny Rally</span></button>
+          <button id="btn-camera-cycle" class="hud-mini-btn" type="button" title="Cycle Camera Angle (C)"><span id="cam-label-prefix">Góc:</span><strong id="camera-mode-label">Rally</strong><kbd class="menu-key">C</kbd></button>
+          <button id="btn-replay-trigger" class="hud-mini-btn" type="button" title="Toggle Instant Replay (R)"><span id="btn-replay-text">Replay</span><kbd class="menu-key">R</kbd></button>
+          <button id="btn-exit-match" class="hud-mini-btn exit-match-btn" type="button" title="Thoát ván đấu về Menu (Esc hoặc P)"><span>🚪</span><span id="btn-exit-match-text">Thoát</span></button>
+          <button id="btn-multiplayer-modal" class="hud-mini-btn hidden" type="button" title="Open 1v1 Multiplayer"><span>💬 1v1</span></button>
         </div>
       </div>
     </div>
+
   </div>
 
   <!-- Pause & Exit Modal -->
   <div id="pause-exit-modal" class="wii-modal-backdrop hidden" aria-hidden="true">
-    <div class="pause-modal-card">
+    <div class="pause-modal-card" role="dialog" aria-modal="true" aria-labelledby="pause-modal-badge-text">
       <div class="pause-modal-header">
         <div class="pause-modal-badge">
           <span class="pause-badge-pulse">⏸</span>
-          <span id="pause-modal-badge-text">TẠM DỪNG TRẬN ĐẤU</span>
+          <span id="pause-modal-badge-text">TẠM DỪNG</span>
         </div>
         <h2 class="pause-modal-title">Pickleball Hachihi Open 2026</h2>
         <div id="pause-match-summary" class="pause-match-summary">
@@ -200,7 +219,7 @@
         <button type="button" id="btn-pause-resume" class="pause-action-btn btn-resume">
           <span class="action-icon">▶</span>
           <div class="action-text">
-            <strong id="txt-pause-resume-title">Tiếp Tục Thi Đấu</strong>
+            <strong id="txt-pause-resume-title">Tiếp tục</strong>
             <small id="txt-pause-resume-sub">Quay lại sân đánh bóng ngay (Esc hoặc P)</small>
           </div>
         </button>
@@ -208,7 +227,7 @@
         <button type="button" id="btn-pause-lobby" class="pause-action-btn btn-lobby">
           <span class="action-icon">👥</span>
           <div class="action-text">
-            <strong id="txt-pause-lobby-title">Sảnh Chờ &amp; Đội Hình (Lobby)</strong>
+            <strong id="txt-pause-lobby-title">Về sảnh</strong>
             <small id="txt-pause-lobby-sub">Đổi thể thức Đơn/Đôi, thêm/bớt BOT AI, mời người</small>
           </div>
         </button>
@@ -216,7 +235,7 @@
         <button type="button" id="btn-pause-restart" class="pause-action-btn btn-restart">
           <span class="action-icon">🔄</span>
           <div class="action-text">
-            <strong id="txt-pause-restart-title">Chơi Lại Ván Này</strong>
+            <strong id="txt-pause-restart-title">Chơi lại ván</strong>
             <small id="txt-pause-restart-sub">Đặt lại điểm số 0-0 và phát bóng lại từ đầu</small>
           </div>
         </button>
@@ -232,7 +251,7 @@
         <button type="button" id="btn-pause-main-menu" class="pause-action-btn btn-main-menu">
           <span class="action-icon">🏠</span>
           <div class="action-text">
-            <strong id="txt-pause-menu-title">Thoát Về Menu Chính</strong>
+            <strong id="txt-pause-menu-title">Thoát</strong>
             <small id="txt-pause-menu-sub">Dừng trận đấu và trở về trang chủ giải đấu</small>
           </div>
         </button>
@@ -1601,6 +1620,21 @@
     renderAllHudMiiAvatars();
   </script>
   <script type="module" src="./src/mobile_ux.js"></script>
+  <script type="module" src="./src/hud_menu.js"></script>
   <script type="module" src="./src/game_engine.js"></script>
+  <script>
+    // Ảnh tham chiếu nhưng chưa có file: ẩn ảnh (và cả ô gallery) thay vì hiện icon ảnh vỡ
+    document.addEventListener('error', function (ev) {
+      var t = ev.target;
+      if (!t || t.tagName !== 'IMG') return;
+      var box = t.closest('.gallery-item') || t;
+      box.classList.add('img-missing');
+    }, true);
+    window.addEventListener('load', function () {
+      document.querySelectorAll('img').forEach(function (i) {
+        if (i.complete && i.naturalWidth === 0 && i.getAttribute('src')) (i.closest('.gallery-item') || i).classList.add('img-missing');
+      });
+    });
+  </script>
 </body>
 </html>
