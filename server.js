@@ -372,7 +372,10 @@ const server = http.createServer(async (req, res) => {
       if (slot) {
         if (body.playerType) slot.playerType = body.playerType;
         if (body.botDifficulty) slot.botDifficulty = body.botDifficulty;
-        if (body.playerName) slot.playerName = body.playerName;
+        if (body.playerName) {
+          slot.playerName = String(body.playerName).slice(0, 16);
+          if (slot.slotId === "A1") targetRoom.hostName = slot.playerName;
+        }
         if (body.botId) slot.botId = body.botId;
         if (body.status) slot.status = body.status;
       }
@@ -442,9 +445,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/match/slot/join") {
       const body = await parseJsonBody(req);
       const targetRoom = getRoom(body.room || roomId);
-      let slot = targetRoom.slots.find((s) => s.slotId === body.slotId);
+      let slot = targetRoom.slots.find((s) => s.slotId === body.slotId && s.playerType !== "human");
       if (!slot) {
-        slot = targetRoom.slots.find((s) => s.playerType === "empty" || s.playerType === "bot");
+        slot = targetRoom.slots.find((s) => s.playerType === "empty") ||
+               targetRoom.slots.find((s) => s.playerType === "bot");
+      }
+      if (!slot) {
+        sendJson(res, 409, { ok: false, error: "ROOM_FULL", roomId: targetRoom.roomId });
+        return;
       }
 
       if (slot) {
@@ -465,7 +473,7 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      sendJson(res, 200, { ok: true, roomId: targetRoom.roomId, slots: targetRoom.slots });
+      sendJson(res, 200, { ok: true, roomId: targetRoom.roomId, assignedSlot: slot.slotId, slots: targetRoom.slots });
       return;
     }
 
