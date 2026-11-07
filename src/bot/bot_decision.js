@@ -45,53 +45,77 @@ export class BotDecision {
     }
 
     let selectedShot = "TOPSPIN";
-    let targetZ = -this.sideSign * (7.5 + Math.random() * 2.8);
-    let targetX = openCornerX + (Math.random() - 0.5) * 0.8;
-    let flightDuration = 0.85;
-    let topspin = 14;
+    let targetZ = -this.sideSign * (7.8 + Math.random() * 2.6);
+    let targetX = openCornerX * 0.85 + (Math.random() - 0.5) * 0.6;
+    let flightDuration = 0.72;
+    let topspin = 18;
     let sidespin = 0;
 
-    // Cú đánh thứ 3 (3rd Shot Drop) - Chiến thuật kinh điển trong Pickleball
+    // Cú đánh thứ 3 (3rd Shot): BOT linh hoạt giữa Topspin Drive an toàn hoặc Drop shot mềm
     if (strokeCount === 2) {
-      if (Math.random() < (this.diffConfig.dinkTendency + 0.35)) {
-        selectedShot = "SLICE"; // Drop shot rơi êm vào bếp đối thủ
-        targetZ = -this.sideSign * (1.35 + Math.random() * 0.65);
-        flightDuration = 0.95;
-        topspin = -6;
+      if (Math.random() < this.diffConfig.dinkTendency) {
+        selectedShot = "SLICE"; // Drop shot cắt xoáy rơi an toàn qua lưới
+        targetZ = -this.sideSign * (2.6 + Math.random() * 1.2);
+        flightDuration = 1.05;
+        topspin = -10;
+        sidespin = (Math.random() < 0.5 ? -1 : 1) * 6;
+      } else {
+        selectedShot = "TOPSPIN"; // Drive bóng sâu an toàn
+        targetZ = -this.sideSign * (8.2 + Math.random() * 2.2);
+        flightDuration = 0.72;
+        topspin = 18;
       }
     } 
-    // Smash khi bóng đối phương lốp cao sát lưới
-    else if (isHighBall && isNearNet && Math.random() < this.diffConfig.smashTendency) {
-      selectedShot = "FLAT"; // Smash dứt điểm
-      targetZ = -this.sideSign * (6.0 + Math.random() * 3.5);
-      flightDuration = 0.56;
-      topspin = 24;
-      targetX = openCornerX * 1.15;
+    // Smash khi bóng bổng và ở cự ly hợp lý (không smash mù quáng khi ở tít cuối sân)
+    else if (isHighBall && (isNearNet || Math.abs(this.actor.pos.z) < 7.0) && Math.random() < this.diffConfig.smashTendency) {
+      selectedShot = "FLAT"; // Smash đập dứt điểm dũng mãnh
+      targetZ = -this.sideSign * (7.5 + Math.random() * 3.0);
+      flightDuration = 0.50;
+      topspin = 22;
+      targetX = openCornerX * 0.95;
     } 
-    // Dink đấu bếp (Kitchen battle) khi cả hai bên đều ở sát vạch 7ft
+    // Dink đấu bếp (Kitchen battle) khi bóng rơi gần lưới: nảy êm vào NVZ
     else if (isNearNet && Math.random() < this.diffConfig.dinkTendency) {
       selectedShot = "DINK";
-      targetZ = -this.sideSign * (1.15 + Math.random() * 0.8);
-      flightDuration = 0.92;
+      targetZ = -this.sideSign * (1.6 + Math.random() * 0.8);
+      flightDuration = 0.95;
       topspin = 4;
-      targetX = THREE.MathUtils.clamp(targetX * 0.65, -3.2, 3.2);
+      targetX = THREE.MathUtils.clamp(targetX * 0.6, -2.6, 2.6);
     } 
-    // Lob phòng thủ khi bị ép góc
-    else if (Math.abs(this.actor.pos.x) > 3.2 && Math.random() < 0.22) {
+    // Lob phòng thủ khi bị ép góc dạt ra biên: bóng đi cao, an toàn
+    else if (Math.abs(this.actor.pos.x) > 2.9 && Math.random() < 0.20) {
       selectedShot = "LOB";
-      targetZ = -this.sideSign * (9.5 + Math.random() * 2.0);
-      flightDuration = 1.35;
+      targetZ = -this.sideSign * (9.5 + Math.random() * 1.5);
+      flightDuration = 1.52;
       topspin = 4;
     }
+    // Cắt Slice đổi nhịp trận đấu
+    else if (Math.random() < 0.18) {
+      selectedShot = "SLICE";
+      targetZ = -this.sideSign * (5.5 + Math.random() * 2.5);
+      flightDuration = 1.02;
+      topspin = -12;
+      sidespin = (Math.random() < 0.5 ? -1 : 1) * 8;
+    }
 
-    // Mô phỏng sai số theo cấp độ khó (Error probability)
+    // Sai số có kiểm soát theo cấp độ (chỉ lỗi rất hiếm khi chịu áp lực cao)
     let allowFault = false;
     if (Math.random() < this.diffConfig.errorProbability) {
-      // Đánh hỏng: hoặc ra ngoài biên hoặc đập lưới
-      if (Math.random() < 0.5) {
-        targetX = (targetX >= 0 ? 1 : -1) * (4.8 + Math.random() * 0.6); // Ra ngoài biên
+      if (Math.random() < 0.70) {
+        // Đánh hơi rộng ra biên một chút thay vì cắm thẳng vào lưới
+        targetX = (targetX >= 0 ? 1 : -1) * (4.25 + Math.random() * 0.35);
       } else {
-        allowFault = true; // Lỗi chạm lưới
+        allowFault = true;
+      }
+    }
+
+    // Luôn giữ bóng nằm an toàn trong sân đối phương nếu không cố ý đánh hỏng
+    if (!allowFault && Math.abs(targetX) <= 4.2) {
+      targetX = THREE.MathUtils.clamp(targetX, -3.6, 3.6);
+      if (this.sideSign > 0) {
+        targetZ = THREE.MathUtils.clamp(targetZ, -10.8, -1.6);
+      } else {
+        targetZ = THREE.MathUtils.clamp(targetZ, 1.6, 10.8);
       }
     }
 

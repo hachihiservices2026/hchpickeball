@@ -120,8 +120,9 @@ export class BotController {
           return;
         }
 
-        // Khoảng cách tiếp xúc bóng lý tưởng: 0.7m - 1.6m theo trục Z, độ cao 0.55m - 2.2m
-        if (distZ <= 1.45 && distToBall <= 2.2 && ball.pos.y >= 0.55 && ball.pos.y <= 2.45 && this.actor.swingCooldown <= 0) {
+        // Khoảng cách tiếp xúc bóng tự nhiên và an toàn: không để lọt bóng dẫn đến lỗi 2 lần nảy
+        const canHitHeight = ball.bounceCountOnCurrentSide >= 1 ? (ball.pos.y >= 0.18 && ball.pos.y <= 2.65) : (ball.pos.y >= 0.55 && ball.pos.y <= 2.45);
+        if (distZ <= 1.75 && distToBall <= 2.75 && canHitHeight && this.actor.swingCooldown <= 0) {
           this.executeRallyHit(engine, ball, opponents);
         }
       }
@@ -164,7 +165,8 @@ export class BotController {
       {
         topspin: shot.topspin,
         sidespin: shot.sidespin,
-        allowNetFault: shot.allowFault
+        allowNetFault: shot.allowFault,
+        shotType: shot.shotType
       }
     );
 

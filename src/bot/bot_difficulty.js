@@ -7,49 +7,49 @@ export const BOT_DIFFICULTY_PRESETS = {
     id: "easy",
     name: "Người mới (Easy)",
     nameVi: "Dễ / Người mới",
-    description: "Phản ứng chậm hơn, đánh bóng đơn giản, tỉ lệ đánh hỏng cao hơn khi bóng khó",
-    reactionDelaySeconds: 0.28,    // Thời gian trễ trước khi nhận diện và bắt đầu chạy đến bóng
-    movementSpeedMultiplier: 0.78,  // Tốc độ chạy vừa phải
-    anticipationAccuracy: 0.72,    // Ước tính điểm rơi bóng có độ lệch nhẹ
-    errorProbability: 0.18,        // Xác suất đánh hỏng (ra ngoài hoặc lưới) khi bị ép góc
-    sweetSpotChance: 0.50,         // Xác suất vào điểm ngọt vợt
-    dinkTendency: 0.12,            // Ít dink, chủ yếu trả bóng bổng hoặc drive
-    smashTendency: 0.40,           // Đập bóng khi bóng bổng nhưng không quá dứt khoát
-    spinIntensity: 8,              // Độ xoáy bóng cơ bản
-    shotSpeedMaxKmH: 125,          // Tốc độ cú đánh tối đa
-    cooldownBetweenShots: 0.32
+    description: "Đánh bóng bền, phản xạ đều đặn, tỉ lệ bóng vào sân cao giúp người chơi làm quen nhịp đấu",
+    reactionDelaySeconds: 0.10,    // Phản xạ mượt mà, không bị khựng
+    movementSpeedMultiplier: 0.96,  // Di chuyển bao quát sân tốt
+    anticipationAccuracy: 0.92,    // Đoán điểm rơi chuẩn xác
+    errorProbability: 0.035,       // Rất ít khi tự đánh hỏng sơ đẳng
+    sweetSpotChance: 0.78,         // Cú đánh ổn định
+    dinkTendency: 0.22,            // Biết dink khi cần
+    smashTendency: 0.60,           // Đập bóng khi có cơ hội
+    spinIntensity: 12,             // Độ xoáy bóng vừa phải
+    shotSpeedMaxKmH: 140,          // Tốc độ bóng ổn định
+    cooldownBetweenShots: 0.20
   },
   normal: {
     id: "normal",
     name: "Vừa sức (Normal)",
     nameVi: "Vừa sức / CLB",
-    description: "Di chuyển hợp lý, phản ứng tương đối nhanh, đánh bóng ổn định và biết phối hợp cơ bản",
-    reactionDelaySeconds: 0.14,
-    movementSpeedMultiplier: 0.94,
-    anticipationAccuracy: 0.90,
-    errorProbability: 0.06,
-    sweetSpotChance: 0.80,
-    dinkTendency: 0.35,            // Thường xuyên thả bóng vào Bếp (Kitchen) khi đối thủ lùi sâu
-    smashTendency: 0.75,           // Đập bóng dứt khoát khi bóng cao hơn lưới
-    spinIntensity: 15,
-    shotSpeedMaxKmH: 160,
-    cooldownBetweenShots: 0.20
+    description: "Di chuyển thông minh, rally bền bỉ, biết phối hợp bếp (Kitchen) và phản công sắc bén",
+    reactionDelaySeconds: 0.05,
+    movementSpeedMultiplier: 1.08,
+    anticipationAccuracy: 0.96,
+    errorProbability: 0.012,       // Chỉ lỗi khi bị ép vào thế cực kỳ hiểm
+    sweetSpotChance: 0.92,
+    dinkTendency: 0.42,            // Thường xuyên thả bóng vào Bếp (Kitchen) khi đối thủ lùi sâu
+    smashTendency: 0.82,           // Đập bóng dứt khoát khi bóng cao hơn lưới
+    spinIntensity: 18,
+    shotSpeedMaxKmH: 168,
+    cooldownBetweenShots: 0.15
   },
   hard: {
     id: "hard",
     name: "Cao thủ (Hard)",
     nameVi: "Chuyên nghiệp / Hard",
-    description: "Phản ứng nhanh, dự đoán quỹ đạo sớm, biết chọn vị trí chiến thuật và phối hợp đồng đội xuất sắc",
-    reactionDelaySeconds: 0.05,    // Phản xạ chớp nhoáng
-    movementSpeedMultiplier: 1.10,  // Tốc độ di chuyển nhanh, bao quát sân tốt
-    anticipationAccuracy: 0.98,    // Dự đoán chính xác vị trí bóng nảy
-    errorProbability: 0.015,       // Hầu như không mắc lỗi sơ đẳng
-    sweetSpotChance: 0.96,         // Cú đánh luôn chạm điểm ngọt tâm vợt
+    description: "Đẳng cấp kiện tướng: rally không mắc lỗi, bao quát sân toàn diện, tấn công và phòng thủ đỉnh cao",
+    reactionDelaySeconds: 0.015,   // Phản xạ cực nhanh
+    movementSpeedMultiplier: 1.22, // Tốc độ di chuyển nhanh, bao quát sân tối ưu
+    anticipationAccuracy: 0.99,    // Dự đoán chính xác 100% vị trí bóng nảy
+    errorProbability: 0.003,       // Gần như không bao giờ tự đánh hỏng
+    sweetSpotChance: 0.98,         // Cú đánh luôn chạm điểm ngọt tâm vợt
     dinkTendency: 0.55,            // Dink hiểm hóc sát mép lưới
-    smashTendency: 0.95,           // Smash hiểm hóc vào góc trống
-    spinIntensity: 22,             // Xoáy topspin / slice mạnh
-    shotSpeedMaxKmH: 195,
-    cooldownBetweenShots: 0.12
+    smashTendency: 0.96,           // Smash hiểm hóc vào góc trống
+    spinIntensity: 24,             // Xoáy topspin / slice mạnh
+    shotSpeedMaxKmH: 198,
+    cooldownBetweenShots: 0.10
   }
 };
 
