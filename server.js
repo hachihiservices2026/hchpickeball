@@ -25,7 +25,7 @@ function createDefaultSlots(matchType = "doubles", hostName = "Hachihi Pro") {
       slotNumber: 1,
       playerType: "human",
       playerId: "p1",
-      playerName: hostName || "Player 1",
+      playerName: hostName || "Hachihi Pro",
       status: "ready",
       avatar: "player1"
     }
@@ -36,11 +36,11 @@ function createDefaultSlots(matchType = "doubles", hostName = "Hachihi Pro") {
       slotId: "A2",
       teamCode: "A",
       slotNumber: 2,
-      playerType: "bot",
-      botId: "BOT_MAYA",
-      playerName: "Maya (AI)",
-      botDifficulty: "normal",
-      status: "ready",
+      playerType: "empty",
+      botId: null,
+      playerName: "Vị trí A2 (Đang chờ...)",
+      botDifficulty: null,
+      status: "waiting",
       avatar: "player2"
     });
   }
@@ -49,11 +49,11 @@ function createDefaultSlots(matchType = "doubles", hostName = "Hachihi Pro") {
     slotId: "B1",
     teamCode: "B",
     slotNumber: 1,
-    playerType: "bot",
-    botId: "BOT_MATT",
-    playerName: "Matt (AI)",
-    botDifficulty: "normal",
-    status: "ready",
+    playerType: "empty",
+    botId: null,
+    playerName: "Vị trí B1 (Đang chờ...)",
+    botDifficulty: null,
+    status: "waiting",
     avatar: "opponent1"
   });
 
@@ -62,11 +62,11 @@ function createDefaultSlots(matchType = "doubles", hostName = "Hachihi Pro") {
       slotId: "B2",
       teamCode: "B",
       slotNumber: 2,
-      playerType: "bot",
-      botId: "BOT_AKIRA",
-      playerName: "Akira (AI)",
-      botDifficulty: "normal",
-      status: "ready",
+      playerType: "empty",
+      botId: null,
+      playerName: "Vị trí B2 (Đang chờ...)",
+      botDifficulty: null,
+      status: "waiting",
       avatar: "opponent2"
     });
   }
@@ -374,6 +374,63 @@ const server = http.createServer(async (req, res) => {
         if (body.status) slot.status = body.status;
       }
 
+      sendJson(res, 200, { ok: true, roomId: targetRoom.roomId, slots: targetRoom.slots });
+      return;
+    }
+
+    // POST /api/match/slot/move (Kéo thả tráo đổi hoặc chuyển đội)
+    if (req.method === "POST" && pathname === "/api/match/slot/move") {
+      const body = await parseJsonBody(req);
+      const targetRoom = getRoom(body.room || roomId);
+      const fromSlotId = body.fromSlotId;
+      const toSlotId = body.toSlotId;
+      const targetTeam = body.targetTeam;
+      const fromSlot = targetRoom.slots.find((s) => s.slotId === fromSlotId);
+      if (fromSlot) {
+        let toSlot = toSlotId ? targetRoom.slots.find((s) => s.slotId === toSlotId) : null;
+        if (!toSlot && targetTeam) {
+          toSlot = targetRoom.slots.find((s) => s.teamCode === targetTeam && s.playerType === "empty");
+          if (!toSlot) {
+            toSlot = targetRoom.slots.find((s) => s.teamCode === targetTeam && s.playerType === "bot");
+          }
+          if (!toSlot) {
+            toSlot = targetRoom.slots.find((s) => s.teamCode === targetTeam && s.slotId !== fromSlotId);
+          }
+        }
+        if (toSlot && toSlot.slotId !== fromSlot.slotId) {
+          const temp = {
+            playerType: fromSlot.playerType,
+            playerId: fromSlot.playerId,
+            playerName: fromSlot.playerName,
+            botId: fromSlot.botId,
+            botDifficulty: fromSlot.botDifficulty,
+            status: fromSlot.status,
+            avatar: fromSlot.avatar
+          };
+          fromSlot.playerType = toSlot.playerType;
+          fromSlot.playerId = toSlot.playerId;
+          fromSlot.playerName = toSlot.playerName;
+          fromSlot.botId = toSlot.botId;
+          fromSlot.botDifficulty = toSlot.botDifficulty;
+          fromSlot.status = toSlot.status;
+
+          toSlot.playerType = temp.playerType;
+          toSlot.playerId = temp.playerId;
+          toSlot.playerName = temp.playerName;
+          toSlot.botId = temp.botId;
+          toSlot.botDifficulty = temp.botDifficulty;
+          toSlot.status = temp.status;
+
+          targetRoom.messages.push({
+            id: "msg_move_" + Date.now(),
+            sender: "Hệ thống",
+            role: "system",
+            team: "SYS",
+            text: `Vị trí đã được điều chỉnh: ${fromSlotId} ⇄ ${toSlot.slotId}`,
+            timestamp: Date.now()
+          });
+        }
+      }
       sendJson(res, 200, { ok: true, roomId: targetRoom.roomId, slots: targetRoom.slots });
       return;
     }

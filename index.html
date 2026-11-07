@@ -1040,6 +1040,7 @@
         </button>
       </div>
     </div>
+  </div>
   <!-- Tank Battle 1990 Style Multiplayer Room Lobby Modal -->
   <div id="room-lobby-modal" class="wii-modal-backdrop hidden">
     <div class="tank-lobby-card">
@@ -1077,7 +1078,7 @@
             </div>
           </div>
 
-          <div class="room-col-box room-col-visibility">
+          <div class="room-col-box room-col-visibility" id="lobby-visibility-col">
             <span class="room-col-label">HIỂN THỊ PHÒNG:</span>
             <label class="tank-toggle-switch">
               <input type="checkbox" id="lobby-public-toggle" checked />
@@ -1097,17 +1098,91 @@
           </div>
         </div>
 
-        <div class="tank-tip-banner">
-          <span class="tip-icon">💡</span>
-          <span>Chủ phòng có thể chuyển người chơi giữa 2 đội, bấm nút thêm Máy (Bot) bên dưới hoặc nhấn Bắt đầu khi sẵn sàng.</span>
+        <!-- GUEST VIEW: BẢNG TÓM TẮT TRẬN ĐẤU (CHỈ XEM CHO NGƯỜI CHƠI THAM GIA) -->
+        <div id="lobby-guest-view" class="tank-section-box guest-summary-card hidden">
+          <div class="guest-card-header">
+            <span class="guest-badge-pulse">🟢 ĐÃ THAM GIA PHÒNG THÀNH CÔNG</span>
+            <h3 class="guest-card-title">BẢNG TÓM TẮT THIẾT LẬP TRẬN ĐẤU</h3>
+            <p class="guest-card-sub">Cài đặt trận đấu do Chủ phòng toàn quyền thiết lập. Bạn có thể xem thông tin và chat bên dưới.</p>
+          </div>
+
+          <div class="guest-summary-grid">
+            <div class="guest-info-item highlight-role">
+              <span class="info-label">👤 VỊ TRÍ &amp; ĐỘI CỦA BẠN:</span>
+              <div class="info-val-badge" id="guest-my-role-badge">Đang xác định...</div>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">⚔️ THỂ THỨC THI ĐẤU:</span>
+              <strong class="info-val-text" id="guest-summary-mode">Đấu Đôi 2v2 (A vs B)</strong>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">👥 THÀNH PHẦN PHÒNG:</span>
+              <strong class="info-val-text" id="guest-summary-players">1 Người chơi • 0 Bot Máy</strong>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">⚡ CẤP ĐỘ MÁY BOT:</span>
+              <strong class="info-val-text" id="guest-summary-bot-speed">Cấp 3 [Chuẩn] - 1.0x</strong>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">👑 CHỦ PHÒNG (HOST):</span>
+              <strong class="info-val-text" id="guest-summary-host">Hachihi Pro</strong>
+            </div>
+
+            <div class="guest-info-item">
+              <span class="info-label">🏆 MÃ PHÒNG ĐẤU:</span>
+              <strong class="info-val-text code-val" id="guest-summary-room-code">10150</strong>
+            </div>
+          </div>
+
+          <!-- Danh sách 2 Đội ở chế độ chỉ xem -->
+          <div class="guest-roster-box">
+            <div class="guest-roster-col">
+              <div class="roster-header">
+                <span class="team-color-indicator" id="guest-ind-a" style="background-color: #ffea28;"></span>
+                <strong id="guest-name-team-a">Đội A</strong>
+              </div>
+              <div class="guest-roster-list" id="guest-list-team-a">
+                <!-- Sẽ render động -->
+              </div>
+            </div>
+
+            <div class="guest-roster-vs">VS</div>
+
+            <div class="guest-roster-col">
+              <div class="roster-header">
+                <span class="team-color-indicator" id="guest-ind-b" style="background-color: #0284c7;"></span>
+                <strong id="guest-name-team-b">Đội B</strong>
+              </div>
+              <div class="guest-roster-list" id="guest-list-team-b">
+                <!-- Sẽ render động -->
+              </div>
+            </div>
+          </div>
+
+          <div class="guest-waiting-status">
+            <span class="waiting-spinner">⏳</span>
+            <span>Ván đấu sẽ tự động bắt đầu ngay khi Chủ phòng nhấn Bắt Đầu. Hãy gửi tin nhắn cho phòng ở khung chat bên dưới!</span>
+          </div>
         </div>
 
-        <!-- SECTION 2: TÙY CHỈNH 2 ĐỘI (A vs B) -->
-        <div class="tank-section-box tank-teams-panel">
-          <div class="tank-section-heading">
-            <span class="heading-icon">⚙</span>
-            <span>TÙY CHỈNH 2 ĐỘI</span>
+        <!-- HOST VIEW: TẤT CẢ CÁC CÀI ĐẶT DÀNH CHO CHỦ PHÒNG -->
+        <div id="lobby-host-view" class="lobby-host-controls-wrapper">
+
+          <div class="tank-tip-banner">
+            <span class="tip-icon">💡</span>
+            <span>Chủ phòng có thể kéo thả di chuyển người/bot giữa 2 đội, nhấn nút 🤖 + Thêm Máy hoặc nút ✕ để xóa slot.</span>
           </div>
+
+          <!-- SECTION 2: TÙY CHỈNH 2 ĐỘI (A vs B) -->
+          <div class="tank-section-box tank-teams-panel">
+            <div class="tank-section-heading">
+              <span class="heading-icon">⚙</span>
+              <span>TÙY CHỈNH 2 ĐỘI (KÉO THẢ DI CHUYỂN HOẶC BẤM ĐỔI)</span>
+            </div>
 
           <div class="teams-container-grid">
             <!-- ĐỘI A -->
@@ -1277,6 +1352,7 @@
           </div>
           <div class="tank-speed-note">Chuẩn (Mặc định): Tốc độ phản xạ và quỹ đạo bóng Pickleball giải đấu Hachihi Open 2026.</div>
         </div>
+      </div>
 
         <!-- SECTION 5: TRÒ CHUYỆN PHÒNG (CHAT BOX) -->
         <div class="tank-section-box tank-chat-box">

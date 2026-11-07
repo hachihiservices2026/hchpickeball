@@ -414,26 +414,44 @@ export class HudUI {
       btnCreateMulti.addEventListener("click", async () => {
         const v = document.getElementById("player-name-input");
         v && v.value.trim() && this.setPlayerName(v.value.trim());
+
+        // Thiết lập trạng thái Chủ phòng & khởi tạo slot phòng mới: chỉ Host ở A1, A2/B1/B2 để trống
+        this.matchManager.isHost = true;
+        this.matchManager.hostName = this.playerName;
+        this.matchManager.localPlayerSlot = "A1";
+        this.matchManager.initRoomLobbySlots(this.playerName);
+
+        // Hiển thị trực tiếp bảng tạo phòng ngay lập tức không để người dùng chờ
+        this.openRoomLobbyModal();
+
         try {
           const res = await fetch("/api/match/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ p1Name: this.playerName })
+            body: JSON.stringify({
+              p1Name: this.playerName,
+              hostName: this.playerName,
+              matchType: this.selectedFormat || "doubles"
+            })
           });
           if (res.ok) {
             const data = await res.json();
             const roomId = data.roomId || "10150";
             this.currentRoomId = roomId;
             this.matchManager.roomId = roomId;
-            this.matchManager.isHost = true;
-            this.matchManager.hostName = this.playerName;
-            this.matchManager.localPlayerSlot = "A1";
-            this.openRoomLobbyModal();
-          } else {
-            this.openRoomLobbyModal();
+            if (data.slots && Array.isArray(data.slots)) {
+              this.matchManager.slots = data.slots;
+            }
+            if (typeof window !== "undefined") {
+              window.__argonTennis = window.__argonTennis || {};
+              window.__argonTennis.roomId = roomId;
+              window.__argonTennis.isMultiplayer = true;
+            }
+            this.updateLobbyUI();
+            this.startLobbyPolling(roomId);
           }
-        } catch {
-          this.openRoomLobbyModal();
+        } catch (e) {
+          console.warn("[Lobby] Create room network fallback:", e);
         }
       });
 
@@ -447,6 +465,15 @@ export class HudUI {
       }
       const v = document.getElementById("player-name-input");
       v && v.value.trim() && this.setPlayerName(v.value.trim());
+
+      this.currentRoomId = raw;
+      this.matchManager.roomId = raw;
+      this.matchManager.isHost = false;
+      this.matchManager.localPlayerSlot = "B1";
+
+      // Hiển thị ngay màn hình chờ tham gia (Guest View đơn giản)
+      this.openRoomLobbyModal();
+
       try {
         const res = await fetch("/api/match/slot/join", {
           method: "POST",
@@ -455,22 +482,17 @@ export class HudUI {
         });
         if (res.ok) {
           const data = await res.json();
-          this.currentRoomId = raw;
-          this.matchManager.roomId = raw;
-          this.matchManager.isHost = false;
-          this.matchManager.localPlayerSlot = data.assignedSlot || "B1";
-          this.openRoomLobbyModal();
-        } else {
-          this.currentRoomId = raw;
-          this.matchManager.roomId = raw;
-          this.matchManager.isHost = false;
-          this.openRoomLobbyModal();
+          if (data.assignedSlot) {
+            this.matchManager.localPlayerSlot = data.assignedSlot;
+          }
+          if (data.slots && Array.isArray(data.slots)) {
+            this.matchManager.slots = data.slots;
+          }
+          this.updateLobbyUI();
+          this.startLobbyPolling(raw);
         }
-      } catch {
-        this.currentRoomId = raw;
-        this.matchManager.roomId = raw;
-        this.matchManager.isHost = false;
-        this.openRoomLobbyModal();
+      } catch (err) {
+        console.warn("[Lobby] Join network err:", err);
       }
     };
     btnSubmitJoin && btnSubmitJoin.addEventListener("click", doJoinRoom);
@@ -1199,14 +1221,21 @@ export class HudUI {
   }
 
   openRoomLobbyModal() {
+    this.hideTitleModal();
     this.updateLobbyUI();
-    this.elRoomLobbyModal && this.elRoomLobbyModal.classList.remove("hidden");
+    if (this.elRoomLobbyModal) {
+      this.elRoomLobbyModal.classList.remove("hidden");
+      this.elRoomLobbyModal.style.display = "flex";
+    }
     this.startLobbyPolling(this.currentRoomId || "10150");
   }
 
   closeRoomLobbyModal() {
     this.stopLobbyPolling();
-    this.elRoomLobbyModal && this.elRoomLobbyModal.classList.add("hidden");
+    if (this.elRoomLobbyModal) {
+      this.elRoomLobbyModal.classList.add("hidden");
+      this.elRoomLobbyModal.style.display = "none";
+    }
   }
 
   startLobbyPolling(roomId) {
@@ -1311,14 +1340,33 @@ export class HudUI {
     this.updateLobbyUI();
   }
 
+  async _syncSlotMove(fromSlotId, toSlotId = null, targetTeam = null) {
+    try {
+      await fetch("/api/match/slot/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          room: this.currentRoomId,
+          fromSlotId,
+          toSlotId,
+          targetTeam
+        })
+      });
+    } catch (e) {
+      console.warn("[Lobby] syncSlotMove err:", e);
+    }
+  }
+
   updateLobbyUI() {
+    const isHost = !!this.matchManager.isHost;
     const isSingles = this.matchManager.matchType === "singles";
+    const roomId = this.matchManager.roomId || this.currentRoomId || "10150";
 
-    // 1. Update 5-digit room code
+    // 1. Cập nhật mã phòng 5 chữ số
     const codeEl = document.getElementById("lobby-room-code-val");
-    if (codeEl) codeEl.textContent = this.matchManager.roomId || this.currentRoomId || "10150";
+    if (codeEl) codeEl.textContent = roomId;
 
-    // 2. Update player count fraction
+    // 2. Cập nhật số lượng người chơi / slot
     const activeSlots = this.matchManager.slots.filter(s => s.playerType !== "empty");
     const maxPlayers = isSingles ? 2 : 4;
     const curPlayersEl = document.getElementById("lobby-current-players");
@@ -1326,7 +1374,164 @@ export class HudUI {
     if (curPlayersEl) curPlayersEl.textContent = String(Math.min(maxPlayers, activeSlots.length));
     if (maxPlayersEl) maxPlayersEl.textContent = String(maxPlayers);
 
-    // 3. Update Team A & B headers and active count
+    // 3. Phân biệt màn hình Host vs Guest
+    const elHostView = document.getElementById("lobby-host-view");
+    const elGuestView = document.getElementById("lobby-guest-view");
+    const elVisibility = document.getElementById("lobby-visibility-col");
+    const btnStart = document.getElementById("btn-tank-start-match");
+    const condBanner = document.getElementById("tank-condition-banner");
+
+    if (isHost) {
+      if (elHostView) { elHostView.classList.remove("hidden"); elHostView.style.display = "block"; }
+      if (elGuestView) { elGuestView.classList.add("hidden"); elGuestView.style.display = "none"; }
+      if (elVisibility) { elVisibility.classList.remove("hidden"); elVisibility.style.display = "flex"; }
+      if (btnStart) { btnStart.classList.remove("hidden"); btnStart.style.display = "flex"; }
+      if (condBanner) { condBanner.classList.remove("hidden"); condBanner.style.display = "flex"; }
+      this._renderHostLobby();
+    } else {
+      if (elHostView) { elHostView.classList.add("hidden"); elHostView.style.display = "none"; }
+      if (elGuestView) { elGuestView.classList.remove("hidden"); elGuestView.style.display = "block"; }
+      if (elVisibility) { elVisibility.classList.add("hidden"); elVisibility.style.display = "none"; }
+      if (btnStart) { btnStart.classList.add("hidden"); btnStart.style.display = "none"; }
+      if (condBanner) { condBanner.classList.add("hidden"); condBanner.style.display = "none"; }
+      this._renderGuestLobby();
+    }
+
+    // 4. Render tin nhắn chat
+    this.renderChatMessages();
+  }
+
+  _renderGuestLobby() {
+    const isSingles = this.matchManager.matchType === "singles";
+    const mySlotId = this.matchManager.localPlayerSlot || "B1";
+    const mySlot = this.matchManager.slots.find(s => s.slotId === mySlotId) ||
+                   this.matchManager.slots.find(s => s.playerName === this.playerName) ||
+                   this.matchManager.slots.find(s => s.playerType === "human" && s.slotId !== "A1") ||
+                   this.matchManager.slots[1];
+
+    // 1. Vị trí & Đội của bạn
+    const badgeRole = document.getElementById("guest-my-role-badge");
+    if (badgeRole) {
+      if (mySlot) {
+        const teamLetter = mySlot.teamCode || (mySlot.slotId.startsWith("A") ? "A" : "B");
+        const isTeamA = teamLetter === "A";
+        const teamName = isTeamA ? (this.matchManager.teamAName || "Đội A") : (this.matchManager.teamBName || "Đội B");
+        const roleDesc = mySlot.slotId === "A1" ? "Chủ phòng" : isTeamA ? "Đồng đội Đội A" : "Đội B (Đối thủ)";
+        badgeRole.innerHTML = `
+          <span style="color: ${isTeamA ? '#ffea28' : '#38bdf8'}; font-weight: 900;">
+            ${isTeamA ? '🟡' : '🔵'} ${teamName} • Vị trí ${mySlot.slotId} [${roleDesc}]
+          </span>
+        `;
+      } else {
+        badgeRole.textContent = "Đang ở hàng chờ...";
+      }
+    }
+
+    // 2. Thể thức thi đấu
+    const elMode = document.getElementById("guest-summary-mode");
+    if (elMode) {
+      elMode.textContent = isSingles ? "🤺 PVP Quyết Đấu 1v1 (Đơn)" : "⚔️ Đối Kháng 2 Đội (2v2 Đôi)";
+    }
+
+    // 3. Thành phần phòng (Người thật vs Bot)
+    const elPlayers = document.getElementById("guest-summary-players");
+    if (elPlayers) {
+      const humans = this.matchManager.slots.filter(s => s.playerType === "human").length;
+      const bots = this.matchManager.slots.filter(s => s.playerType === "bot").length;
+      const total = humans + bots;
+      const maxP = isSingles ? 2 : 4;
+      elPlayers.textContent = `${humans} Người chơi • ${bots} Máy Bot (${total}/${maxP})`;
+    }
+
+    // 4. Cấp độ máy bot
+    const elBotSpeed = document.getElementById("guest-summary-bot-speed");
+    if (elBotSpeed) {
+      const diff = (this.matchManager.botDifficulty || "normal").toLowerCase();
+      const labels = {
+        easy: "Cấp 1 [Chậm] - 0.7x",
+        casual: "Cấp 2 [Vừa] - 0.85x",
+        normal: "Cấp 3 [Chuẩn] - 1.0x",
+        pro: "Cấp 4 [Nhanh] - 1.2x",
+        turbo: "Cấp 5 [Turbo] - 1.4x"
+      };
+      elBotSpeed.textContent = labels[diff] || "Cấp 3 [Chuẩn] - 1.0x";
+    }
+
+    // 5. Chủ phòng
+    const elHost = document.getElementById("guest-summary-host");
+    if (elHost) {
+      elHost.textContent = this.matchManager.hostName || "Hachihi Pro";
+    }
+
+    // 6. Mã phòng
+    const elCode = document.getElementById("guest-summary-room-code");
+    if (elCode) {
+      elCode.textContent = this.matchManager.roomId || this.currentRoomId || "10150";
+    }
+
+    // 7. Tên và màu đội
+    const nameA = document.getElementById("guest-name-team-a");
+    if (nameA) nameA.textContent = this.matchManager.teamAName || "Đội A";
+    const nameB = document.getElementById("guest-name-team-b");
+    if (nameB) nameB.textContent = this.matchManager.teamBName || "Đội B";
+
+    const indA = document.getElementById("guest-ind-a");
+    if (indA) indA.style.backgroundColor = this.matchManager.teamAColor || "#ffea28";
+    const indB = document.getElementById("guest-ind-b");
+    if (indB) indB.style.backgroundColor = this.matchManager.teamBColor || "#0284c7";
+
+    // 8. Render Danh sách 2 Đội ở chế độ chỉ xem
+    const renderTeamRoster = (containerId, teamCode) => {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const slots = this.matchManager.slots.filter(s => s.teamCode === teamCode);
+      let html = "";
+      slots.forEach(s => {
+        if (isSingles && s.slotNumber > 1) return;
+        const isMe = s.slotId === mySlotId || (mySlot && s.slotId === mySlot.slotId);
+        if (s.playerType === "empty") {
+          html += `
+            <div class="guest-roster-slot-row is-empty">
+              <div class="guest-slot-left">
+                <span class="guest-slot-tag">${s.slotId}</span>
+                <span class="guest-slot-name" style="color: #64748b; font-style: italic;">Đang chờ người chơi...</span>
+              </div>
+              <span class="guest-slot-badge">[Trống]</span>
+            </div>`;
+        } else if (s.playerType === "bot") {
+          html += `
+            <div class="guest-roster-slot-row">
+              <div class="guest-slot-left">
+                <span class="guest-slot-tag">${s.slotId}</span>
+                <span class="guest-slot-name">🤖 ${s.playerName || "Bot AI"}</span>
+              </div>
+              <span class="guest-slot-badge" style="color: #38bdf8;">[BOT]</span>
+            </div>`;
+        } else {
+          const isHostSlot = s.slotId === "A1";
+          html += `
+            <div class="guest-roster-slot-row ${isMe ? 'is-me' : ''}">
+              <div class="guest-slot-left">
+                <span class="guest-slot-tag">${s.slotId}</span>
+                <span class="guest-slot-name">👤 ${s.playerName || "Người chơi"} ${isMe ? '<strong style="color: #ffea28;">(Bạn)</strong>' : ''}</span>
+              </div>
+              <span class="guest-slot-badge" style="color: ${isHostSlot ? '#ffea28' : '#22c55e'}; font-weight: 800;">
+                ${isHostSlot ? '[Chủ phòng]' : '[Sẵn sàng]'}
+              </span>
+            </div>`;
+        }
+      });
+      container.innerHTML = html;
+    };
+
+    renderTeamRoster("guest-list-team-a", "A");
+    renderTeamRoster("guest-list-team-b", "B");
+  }
+
+  _renderHostLobby() {
+    const isSingles = this.matchManager.matchType === "singles";
+
+    // 1. Tên đội & màu sắc
     const inputTeamA = document.getElementById("input-team-a-name");
     if (inputTeamA && document.activeElement !== inputTeamA) inputTeamA.value = this.matchManager.teamAName || "Đội A (Sân Nhà)";
     const inputTeamB = document.getElementById("input-team-b-name");
@@ -1344,54 +1549,17 @@ export class HudUI {
     const elCountB = document.getElementById("team-b-count");
     if (elCountB) elCountB.textContent = String(countB);
 
-    // 4. Update member rows (A1, A2, B1, B2)
-    ["A1", "A2", "B1", "B2"].forEach(slotId => {
-      const row = document.getElementById(`row-slot-${slotId}`);
-      if (!row) return;
+    // 2. Render danh sách slots cho Đội A và Đội B
+    this._renderHostTeamSlots("team-a-members", "A");
+    this._renderHostTeamSlots("team-b-members", "B");
 
-      if (isSingles && (slotId === "A2" || slotId === "B2")) {
-        row.style.display = "none";
-        return;
-      } else {
-        row.style.display = "flex";
-      }
-
-      const slot = this.matchManager.slots.find(s => s.slotId === slotId);
-      const nameEl = document.getElementById(`name-${slotId}`);
-      const badgeEl = document.getElementById(`badge-${slotId}`);
-
-      if (!slot || slot.playerType === "empty") {
-        if (nameEl) nameEl.textContent = "Chưa có người chơi trong đội...";
-        if (badgeEl) {
-          badgeEl.textContent = "[Đang chờ]";
-          badgeEl.className = "member-role-badge empty-badge";
-        }
-      } else if (slot.playerType === "bot") {
-        if (nameEl) nameEl.textContent = slot.playerName || (slotId === "A2" ? "Maya (AI)" : slotId === "B1" ? "Matt (AI)" : "Akira (AI)");
-        if (badgeEl) {
-          badgeEl.textContent = `[Máy Bot - ${(slot.botDifficulty || "normal").toUpperCase()}]`;
-          badgeEl.className = "member-role-badge bot-badge";
-        }
-      } else {
-        if (nameEl) nameEl.textContent = slot.playerName || "Người chơi";
-        if (badgeEl) {
-          const isHostSlot = slotId === "A1";
-          badgeEl.textContent = isHostSlot ? "[Chủ phòng]" : "[Người chơi]";
-          badgeEl.className = isHostSlot ? "member-role-badge host-badge" : "member-role-badge player-badge";
-        }
-      }
-    });
-
-    // 5. Update combat mode cards
+    // 3. Highlight chế độ thi đấu
     const modeDoubles = document.getElementById("tank-mode-doubles");
     const modeSingles = document.getElementById("tank-mode-singles");
     if (modeDoubles) modeDoubles.classList.toggle("active", !isSingles);
     if (modeSingles) modeSingles.classList.toggle("active", isSingles);
 
-    // 6. Update chat messages
-    this.renderChatMessages();
-
-    // 7. Update Condition banner and Start CTA
+    // 4. Banner điều kiện & nút Bắt đầu
     const condBanner = document.getElementById("tank-condition-banner");
     const condIcon = document.getElementById("tank-condition-icon");
     const condText = document.getElementById("tank-condition-text");
@@ -1399,20 +1567,7 @@ export class HudUI {
     const txtStart = document.getElementById("btn-tank-start-text");
 
     const canStart = this.matchManager.canStart();
-    const isHost = !!this.matchManager.isHost;
-
-    if (!isHost) {
-      if (condBanner) {
-        condBanner.className = "tank-condition-banner info";
-        if (condIcon) condIcon.textContent = "⏳";
-        if (condText) condText.textContent = "Đang đợi Chủ phòng nhấn BẮT ĐẦU TRẬN ĐẤU...";
-      }
-      if (btnStart) {
-        btnStart.disabled = true;
-        btnStart.className = "btn-tank-start-cta disabled";
-        if (txtStart) txtStart.textContent = "ĐỢI CHỦ PHÒNG BẮT ĐẦU";
-      }
-    } else if (canStart) {
+    if (canStart) {
       if (condBanner) {
         condBanner.className = "tank-condition-banner ready";
         if (condIcon) condIcon.textContent = "✅";
@@ -1435,6 +1590,198 @@ export class HudUI {
         if (txtStart) txtStart.textContent = "CHƯA ĐỦ ĐIỀU KIỆN BẮT ĐẦU";
       }
     }
+  }
+
+  _renderHostTeamSlots(containerId, teamCode) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const isSingles = this.matchManager.matchType === "singles";
+    const slots = this.matchManager.slots.filter(s => s.teamCode === teamCode);
+    const otherTeam = teamCode === "A" ? "B" : "A";
+
+    let html = "";
+    slots.forEach(slot => {
+      if (isSingles && slot.slotNumber > 1) return;
+      const isHostSlot = slot.slotId === "A1";
+
+      if (slot.playerType === "empty") {
+        html += `
+          <div class="tank-member-row empty-slot" id="row-slot-${slot.slotId}" data-slot="${slot.slotId}">
+            <div class="member-info-col">
+              <span class="member-prefix">${slot.slotId}</span>
+              <strong class="member-name" id="name-${slot.slotId}" style="color: #64748b; font-style: italic;">Chưa có người chơi trong đội...</strong>
+              <span class="member-role-badge empty-badge" id="badge-${slot.slotId}">[Đang chờ]</span>
+              <span class="member-status-badge waiting">CHỜ</span>
+            </div>
+            <div class="member-actions-col">
+              <button type="button" class="btn-add-bot-slot-quick" data-slot="${slot.slotId}" title="Thêm Máy Bot vào vị trí này">🤖 + Máy</button>
+            </div>
+          </div>`;
+      } else if (slot.playerType === "bot") {
+        const botSpeed = (slot.botDifficulty || this.matchManager.botDifficulty || "normal").toUpperCase();
+        html += `
+          <div class="tank-member-row bot-member" id="row-slot-${slot.slotId}" data-slot="${slot.slotId}" draggable="true" title="Kéo thả để đổi vị trí hoặc chuyển đội">
+            <div class="member-info-col">
+              <span class="member-prefix">${slot.slotId}</span>
+              <strong class="member-name" id="name-${slot.slotId}">${slot.playerName || (slot.slotId === "A2" ? "Maya (AI)" : slot.slotId === "B1" ? "Matt (AI)" : "Akira (AI)")}</strong>
+              <span class="member-role-badge bot-badge" id="badge-${slot.slotId}">[Máy Bot - ${botSpeed}]</span>
+              <span class="member-status-badge ready">SẴN SÀNG</span>
+            </div>
+            <div class="member-actions-col">
+              <button type="button" class="btn-switch-team" data-slot="${slot.slotId}" title="Chuyển sang Đội ${otherTeam}">⇄ Đội ${otherTeam}</button>
+              <button type="button" class="btn-remove-slot" data-slot="${slot.slotId}" title="Xóa Bot khỏi slot">✕</button>
+            </div>
+          </div>`;
+      } else {
+        html += `
+          <div class="tank-member-row ${isHostSlot ? 'host-member' : 'human-member'}" id="row-slot-${slot.slotId}" data-slot="${slot.slotId}" draggable="true" title="Kéo thả để đổi vị trí hoặc chuyển đội">
+            <div class="member-info-col">
+              <span class="member-prefix">${slot.slotId}</span>
+              <strong class="member-name" id="name-${slot.slotId}">${slot.playerName || "Người chơi"}</strong>
+              <span class="member-role-badge ${isHostSlot ? 'host-badge' : 'player-badge'}" id="badge-${slot.slotId}">
+                ${isHostSlot ? '[Chủ phòng]' : '[Người chơi]'}
+              </span>
+              <span class="member-status-badge ready">SẴN SÀNG</span>
+            </div>
+            <div class="member-actions-col">
+              <button type="button" class="btn-switch-team" data-slot="${slot.slotId}" title="Chuyển sang Đội ${otherTeam}">⇄ Đội ${otherTeam}</button>
+              ${!isHostSlot ? `<button type="button" class="btn-remove-slot" data-slot="${slot.slotId}" title="Mời người này ra khỏi phòng">✕</button>` : ''}
+            </div>
+          </div>`;
+      }
+    });
+
+    container.innerHTML = html;
+    this._attachHostSlotEvents(container, teamCode);
+  }
+
+  _attachHostSlotEvents(container, teamCode) {
+    if (!container) return;
+    container.dataset.team = teamCode;
+
+    // Quick Add Bot nút trực tiếp trên hàng trống
+    container.querySelectorAll(".btn-add-bot-slot-quick").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const slotId = btn.dataset.slot;
+        if (!slotId) return;
+        const botSlot = this.matchManager.addBot(slotId, this.matchManager.botDifficulty || "normal");
+        this.updateLobbyUI();
+        try {
+          await fetch("/api/match/slot/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              room: this.currentRoomId,
+              slotId,
+              playerType: "bot",
+              botDifficulty: this.matchManager.botDifficulty || "normal",
+              botName: botSlot ? botSlot.playerName : "Bot AI"
+            })
+          });
+        } catch {}
+      });
+    });
+
+    // Switch Team (Chuyển sang đội đối diện)
+    container.querySelectorAll(".btn-switch-team").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const slotId = btn.dataset.slot;
+        if (!slotId) return;
+        this.matchManager.switchTeam(slotId);
+        this.updateLobbyUI();
+        try {
+          await fetch("/api/match/slot/switch-team", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ room: this.currentRoomId, slotId })
+          });
+        } catch {}
+      });
+    });
+
+    // Remove Slot (Xóa / Đưa về trạng thái trống)
+    container.querySelectorAll(".btn-remove-slot").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const slotId = btn.dataset.slot;
+        if (!slotId) return;
+        this.matchManager.clearSlot(slotId);
+        this.updateLobbyUI();
+        try {
+          await fetch("/api/match/slot/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ room: this.currentRoomId, slotId, playerType: "empty" })
+          });
+        } catch {}
+      });
+    });
+
+    // Drag and Drop cho từng hàng
+    container.querySelectorAll(".tank-member-row").forEach(row => {
+      const slotId = row.dataset.slot;
+
+      row.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", slotId);
+        e.dataTransfer.effectAllowed = "move";
+        row.classList.add("dragging");
+      });
+
+      row.addEventListener("dragend", () => {
+        document.querySelectorAll(".tank-member-row").forEach(r => r.classList.remove("dragging", "drag-target"));
+        document.querySelectorAll(".team-members-list").forEach(l => l.classList.remove("drag-over"));
+      });
+
+      row.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        row.classList.add("drag-target");
+      });
+
+      row.addEventListener("dragleave", () => {
+        row.classList.remove("drag-target");
+      });
+
+      row.addEventListener("drop", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        row.classList.remove("drag-target");
+        const fromSlotId = e.dataTransfer.getData("text/plain");
+        const toSlotId = row.dataset.slot;
+        if (fromSlotId && toSlotId && fromSlotId !== toSlotId) {
+          this.matchManager.swapSlots(fromSlotId, toSlotId);
+          this.updateLobbyUI();
+          this._syncSlotMove(fromSlotId, toSlotId);
+        }
+      });
+    });
+
+    // Kéo thả vào vùng danh sách của đội
+    container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      container.classList.add("drag-over");
+    });
+
+    container.addEventListener("dragleave", (e) => {
+      if (e.target === container) {
+        container.classList.remove("drag-over");
+      }
+    });
+
+    container.addEventListener("drop", (e) => {
+      container.classList.remove("drag-over");
+      if (e.target === container) {
+        e.preventDefault();
+        const fromSlotId = e.dataTransfer.getData("text/plain");
+        if (fromSlotId) {
+          this.matchManager.moveToTeam(fromSlotId, teamCode);
+          this.updateLobbyUI();
+          this._syncSlotMove(fromSlotId, null, teamCode);
+        }
+      }
+    });
   }
 
   async fetchAndRenderTournamentBracket() {
