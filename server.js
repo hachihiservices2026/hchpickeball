@@ -293,7 +293,11 @@ const server = http.createServer(async (req, res) => {
       if (body.teamBName) targetRoom.teamBName = String(body.teamBName);
       if (body.teamAColor) targetRoom.teamAColor = String(body.teamAColor);
       if (body.teamBColor) targetRoom.teamBColor = String(body.teamBColor);
-      if (body.botDifficulty) targetRoom.botDifficulty = String(body.botDifficulty);
+      if (body.botDifficulty) {
+        targetRoom.botDifficulty = String(body.botDifficulty);
+        // Đổi cấp độ -> áp cho mọi bot đang có trong phòng
+        for (const sl of targetRoom.slots) if (sl.playerType === "bot") sl.botDifficulty = targetRoom.botDifficulty;
+      }
       if (body.scenery) targetRoom.scenery = String(body.scenery);
       if (body.isPublic !== undefined) targetRoom.isPublic = !!body.isPublic;
       if (body.gamesToWin) targetRoom.gamesToWin = Number(body.gamesToWin);
@@ -487,7 +491,7 @@ const server = http.createServer(async (req, res) => {
         targetSlot.playerType = "bot";
         targetSlot.botId = `BOT_${targetSlot.slotId}`;
         targetSlot.playerName = targetSlot.teamCode === "A" ? "Maya (AI)" : "Matt (AI)";
-        targetSlot.botDifficulty = "normal";
+        targetSlot.botDifficulty = targetRoom.botDifficulty || "normal";
         targetSlot.status = "ready";
 
         targetRoom.messages.push({
