@@ -109,3 +109,22 @@ html.is-touch .center-banner-layer.banner-top{top:calc(max(var(--sp-2),env(safe-
 
 /* Nút tiện ích cảm ứng đạt 44px */
 #mx-tools button{width:var(--tap);height:var(--tap)}
+
+/* ---------- Nút loa (góc phải trên) ---------- */
+.hud-sound-btn.btn-icon .ico-sound-off{display:none}
+.hud-sound-btn.is-muted .ico-sound-on{display:none}
+.hud-sound-btn.is-muted .ico-sound-off{display:block}
+.hud-sound-btn.is-muted{color:var(--c-danger);border-color:var(--c-danger)}
+
+/* ---------- Cài đặt (tab Âm thanh / Ánh sáng / Chữ trên đầu): các hàng tùy chọn ---------- */
+.settings-subcard{margin:0 0 var(--sp-4);padding:var(--sp-4);border:1px solid var(--c-line);border-radius:var(--r-lg);background:var(--c-surface)}
+.subcard-title{margin:0 0 var(--sp-3);font-size:var(--fs-16);font-weight:800;color:var(--c-text)}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);padding:var(--sp-3) 0;border-top:1px solid var(--c-line)}
+.setting-row:first-of-type{border-top:0;padding-top:0}
+.setting-info{flex:1 1 auto;min-width:0}
+.setting-title{font-size:var(--fs-14);font-weight:700;color:var(--c-text)}
+.setting-desc{margin-top:var(--sp-1);font-size:var(--fs-12);color:var(--c-text-2);line-height:1.45}
+.setting-ctrl{flex:0 0 auto;display:flex;align-items:center;gap:var(--sp-2)}
+.setting-ctrl .portal-range{width:min(220px,40vw)}
+.portal-btn-sound{min-height:var(--tap);padding:0 var(--sp-4);border-radius:var(--r-md);border:1px solid var(--c-line);background:var(--c-surface-2);color:var(--c-text);font-weight:700;cursor:pointer}
+@media (max-width:600px){.setting-row{flex-wrap:wrap}.setting-ctrl{width:100%}}
