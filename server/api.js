@@ -28,7 +28,7 @@ function createRacketState(role) {
   return {
     role, seq: 0, lastSeenTs: 0, connected: false,
     orientation: { pitch: 0, roll: 0, yaw: 0, accelMag: 0, buttonB: false, connected: false },
-    lastSwing: null, swingHistory: [], feedbackSeq: 0, lastFeedback: null
+    lastSwing: null, swingHistory: [], feedbackSeq: 0, lastFeedback: null, move: null
   };
 }
 
@@ -166,7 +166,7 @@ export function createApi(opts = {}) {
     return {
       role: r.role, connected, lastSeenMs: diff, orientation: { ...r.orientation, connected },
       lastSwing: r.lastSwing ? { ...r.lastSwing } : null, lastFeedback: r.lastFeedback ? { ...r.lastFeedback } : null,
-      swingHistory: r.swingHistory.slice(-15)
+      swingHistory: r.swingHistory.slice(-15), move: r.move ? { ...r.move } : null
     };
   }
 
@@ -399,7 +399,7 @@ export function createApi(opts = {}) {
           room.botDifficulty = String(body.botDifficulty);
           for (const sl of room.slots) if (sl.playerType === "bot") sl.botDifficulty = room.botDifficulty;
         }
-        if (body.scenery) room.scenery = String(body.scenery);
+        if (body.scenery && !room.started) room.scenery = String(body.scenery); // khóa sân khi trận đã bắt đầu
         if (body.sound && typeof body.sound === "object") room.sound = { music: body.sound.music !== false, sfx: body.sound.sfx !== false };
         if (body.isPublic !== undefined) room.isPublic = !!body.isPublic;
         if (body.gamesToWin) room.gamesToWin = Math.max(1, Math.min(5, num(body.gamesToWin, room.gamesToWin)));
@@ -494,6 +494,17 @@ export function createApi(opts = {}) {
         if (rk.swingHistory.length > 50) rk.swingHistory.shift();
         push(room, "swing", sw);
         return ok({ roomId: room.roomId, role: rk.role, swing: sw });
+      }
+      // Movement of a remote player (keys / touch joystick). The HOST runs the simulation, so without this the
+      // guest's character never moved: it stood where the formation put it and could not reach the ball.
+      if (pathname === "/api/racket/move") {
+        const g = guardRacket(); if (g) return g;
+        const rk = room.rackets[room.roomId === DEFAULT_ROOM_ID ? racketRole(body.role, roleKey) : ownRole()];
+        const clamp1 = (v) => Math.max(-1, Math.min(1, num(v, 0)));
+        rk.lastSeenTs = now;
+        rk.move = { x: clamp1(body.x), z: clamp1(body.z), seq: ((rk.move && rk.move.seq) || 0) + 1, serverTimeMs: now };
+        push(room, "move", { role: rk.role, ...rk.move });
+        return ok({ roomId: room.roomId, role: rk.role });
       }
       if (pathname === "/api/racket/telemetry") {
         const g = guardRacket(); if (g) return g;

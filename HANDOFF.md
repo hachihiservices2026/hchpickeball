@@ -90,3 +90,9 @@ Mỗi tab một session (hoặc mỗi thiết bị). Làm cho 2, 3 và 4 ngườ
 
 ## Ghi chú sửa `game_engine.js`
 File này là bản minified một dòng. Sửa bằng cách thay chuỗi chính xác (xem `scripts/patch_step2.py` để biết các chỗ đã vá) và luôn chạy `node --check src/game_engine.js` + `npm test` sau khi sửa.
+
+## Bước 6b — khóa đổi sân khi đang chơi + bỏ chip "Connected" nhấp nháy
+- **Chip "X Connected • Ready to Serve!"** (`#opponent-presence-pill`): trước đây `_lastOtherReady` không bao giờ được ghi nhớ nên hiệu ứng `just-joined` chạy lại ở MỖI lần cập nhật trạng thái (~50ms) → nhấp nháy, không tự ẩn, và còn hiện "Waiting for…" khi đang chơi. Nay chỉ hiện MỘT lần ~4 giây khi đối thủ vừa vào (`hud_ui.js: updateOpponentPresence`), rồi ẩn hẳn; phòng mới mới báo lại.
+- **Khóa đổi sân & ánh sáng khi đang thi đấu** (phase SERVE_STANCE/SERVE_TOSS/RALLY/POINT_OVER/REPLAY/MATCH_OVER): chặn ở 3 lớp — `hud_ui.js` (`_isMatchLocked`, thẻ sân, nút đổi sân trên HUD, thẻ ánh sáng + toast "🔒 Đang thi đấu…"), `game_engine.js` (`onSelectScenery`/`onSetLighting`), `server/api.js` (`team/update` bỏ qua `scenery` khi `room.started`). `src/match_lock.js` chỉ lo phần làm mờ nút. Ở TITLE / phòng chờ vẫn đổi bình thường; lúc bắt đầu trận engine vẫn tự áp sân của host (gọi `applyScenery` trực tiếp, không qua khóa).
+- Sửa kèm: thẻ ánh sáng đọc `data-preset` trong khi HTML dùng `data-lighting` → chọn đêm/hoàng hôn luôn ra "ban ngày"; nay đọc đúng.
+- Test mới: `scripts/test_hud_presence_lock.mjs` (HudUI thật + DOM giả), thêm ca "đổi sân sau khi bắt đầu bị bỏ qua" vào `scripts/test_multiplayer.mjs`. `npm test` = 6 bộ, tất cả xanh.
